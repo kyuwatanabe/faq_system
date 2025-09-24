@@ -265,6 +265,10 @@
                     </div>
 
                     <div class="action-buttons">
+                        <a href="/admin/check_duplicates/{{ item.id }}" class="btn"
+                           style="background: #17a2b8; color: white;">
+                            🔍 重複チェック
+                        </a>
                         <form method="POST" action="/admin/approve/{{ item.id }}" style="display: inline;">
                             <button type="submit" class="btn btn-approve"
                                     onclick="return confirm('このQ&AをFAQに追加しますか？')">

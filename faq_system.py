@@ -693,6 +693,31 @@ def main():
 
         print("-" * 50)
 
+def find_similar_faqs(faq_system, question: str, threshold: float = 0.6, max_results: int = 5) -> list:
+    """既存のFAQから類似する質問を検出"""
+    similar_faqs = []
+
+    for faq in faq_system.faq_data:
+        # 文字列類似度とキーワードスコアを組み合わせて計算
+        similarity = faq_system.calculate_similarity(question, faq['question'])
+        keyword_score = faq_system.get_keyword_score(question, faq['question'], faq.get('keywords', ''))
+
+        # 総合スコア（類似度70%、キーワード30%の重み付け）
+        total_score = similarity * 0.7 + keyword_score * 0.3
+
+        if total_score >= threshold:
+            similar_faqs.append({
+                'question': faq['question'],
+                'answer': faq['answer'],
+                'keywords': faq.get('keywords', ''),
+                'category': faq.get('category', ''),
+                'similarity_score': round(total_score, 3)
+            })
+
+    # スコア順でソートして上位結果を返す
+    similar_faqs.sort(key=lambda x: x['similarity_score'], reverse=True)
+    return similar_faqs[:max_results]
+
 
 if __name__ == "__main__":
     main()
