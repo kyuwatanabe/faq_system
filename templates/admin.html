@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ管理画面</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+        }
+
+        .back-link {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            transition: background 0.3s;
+        }
+
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .add-form {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .add-form h2 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            height: 80px;
+            resize: vertical;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: transform 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+        }
+
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .faq-list {
+            margin-top: 20px;
+        }
+
+        .faq-item {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .faq-header {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .faq-number {
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .faq-content {
+            padding: 15px;
+        }
+
+        .faq-question {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .faq-answer {
+            color: #666;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+        .faq-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .edit-form {
+            display: none;
+            background: #f0f8ff;
+            padding: 15px;
+            border-top: 1px solid #ddd;
+        }
+
+        .stats {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .stats h3 {
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>FAQ管理画面</h1>
+            <div>
+                <a href="/admin/review" class="back-link" style="margin-right: 10px;">承認待ちQ&A</a>
+                <a href="/" class="back-link">ユーザー画面に戻る</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="stats">
+                <h3>{{ faqs|length }}</h3>
+                <p>登録済みFAQ件数</p>
+            </div>
+
+            <!-- FAQ追加フォーム -->
+            <div class="add-form">
+                <h2>新しいFAQを追加</h2>
+                <form action="/admin/add" method="post">
+                    <div class="form-group">
+                        <label for="question">質問:</label>
+                        <input type="text" id="question" name="question" required maxlength="200">
+                    </div>
+                    <div class="form-group">
+                        <label for="answer">回答:</label>
+                        <textarea id="answer" name="answer" required maxlength="1000"></textarea>
+                    </div>
+                    <button type="submit" class="btn">FAQ追加</button>
+                </form>
+            </div>
+
+            <!-- FAQ一覧 -->
+            <div class="faq-list">
+                <h2>FAQ一覧</h2>
+                {% for faq in faqs %}
+                <div class="faq-item">
+                    <div class="faq-header">
+                        <div class="faq-number">{{ loop.index }}</div>
+                        <div class="faq-actions">
+                            <button class="btn btn-small" onclick="toggleEdit({{ loop.index0 }})">編集</button>
+                            <form method="post" action="/admin/delete/{{ loop.index0 }}" style="display: inline;"
+                                  onsubmit="return confirm('このFAQを削除してもよろしいですか？');">
+                                <button type="submit" class="btn btn-danger btn-small">削除</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="faq-content">
+                        <div class="faq-question">{{ faq.question }}</div>
+                        <div class="faq-answer">{{ faq.answer }}</div>
+                    </div>
+
+                    <!-- 編集フォーム -->
+                    <div class="edit-form" id="edit-form-{{ loop.index0 }}">
+                        <h3>FAQ編集</h3>
+                        <form action="/admin/edit/{{ loop.index0 }}" method="post">
+                            <div class="form-group">
+                                <label>質問:</label>
+                                <input type="text" name="question" value="{{ faq.question }}" maxlength="200">
+                            </div>
+                            <div class="form-group">
+                                <label>回答:</label>
+                                <textarea name="answer" maxlength="1000">{{ faq.answer }}</textarea>
+                            </div>
+                            <button type="submit" class="btn">更新</button>
+                            <button type="button" class="btn" onclick="toggleEdit({{ loop.index0 }})">キャンセル</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleEdit(index) {
+            const editForm = document.getElementById(`edit-form-${index}`);
+            if (editForm.style.display === 'none' || editForm.style.display === '') {
+                editForm.style.display = 'block';
+            } else {
+                editForm.style.display = 'none';
+            }
+        }
+
+        // フォーム送信時の確認
+        document.querySelector('.add-form form').addEventListener('submit', function(e) {
+            const question = document.getElementById('question').value.trim();
+            const answer = document.getElementById('answer').value.trim();
+
+            if (!question || !answer) {
+                e.preventDefault();
+                alert('質問と回答の両方を入力してください');
+            }
+        });
+    </script>
+</body>
+</html>
