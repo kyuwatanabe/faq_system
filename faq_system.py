@@ -520,9 +520,20 @@ class FAQSystem:
                 import re
                 json_match = re.search(r'\{.*\}', content, re.DOTALL)
                 if json_match:
-                    qa_data = json.loads(json_match.group())
-                    print(f"[DEBUG] JSONデータ抽出成功: {qa_data}")
-                    return qa_data
+                    # 改行文字を適切にエスケープ
+                    json_str = json_match.group()
+                    # 文字列内の改行をエスケープ（JSONパースエラーを防ぐ）
+                    # まず正規表現で文字列値内の改行を検出して置換
+                    json_str = re.sub(r'("(?:[^"\\]|\\.)*?")', lambda m: m.group(1).replace('\n', '\\n').replace('\r', '\\r'), json_str)
+
+                    try:
+                        qa_data = json.loads(json_str)
+                        print(f"[DEBUG] JSONデータ抽出成功: {qa_data}")
+                        return qa_data
+                    except json.JSONDecodeError as e:
+                        print(f"[DEBUG] JSONパースエラー: {e}")
+                        print(f"[DEBUG] 問題のJSON: {json_str[:500]}...")
+                        return self._mock_claude_improvement(user_question, current_answer)
                 else:
                     print(f"[DEBUG] Claude の回答からJSONを抽出できませんでした。モック機能に切り替えます")
                     return self._mock_claude_improvement(user_question, current_answer)
