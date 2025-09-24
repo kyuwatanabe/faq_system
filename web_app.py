@@ -114,27 +114,34 @@ def reject_qa(qa_id):
 @app.route('/admin/check_duplicates/<qa_id>')
 def check_duplicates(qa_id):
     """承認待ちQ&Aの重複チェック"""
-    # 承認待ちQ&Aを取得
-    faq_system.load_pending_qa()
-    pending_item = None
-    for item in faq_system.pending_qa:
-        if item['id'] == qa_id:
-            pending_item = item
-            break
+    try:
+        # 承認待ちQ&Aを取得
+        faq_system.load_pending_qa()
+        pending_item = None
+        for item in faq_system.pending_qa:
+            if item['id'] == qa_id:
+                pending_item = item
+                break
 
-    if not pending_item:
-        return redirect(url_for('review_pending'))
+        if not pending_item:
+            print(f"[DEBUG] 承認待ちアイテムが見つかりません: {qa_id}")
+            return redirect(url_for('review_pending'))
 
-    # 類似FAQ検索
-    faq_system.load_faq_data('faq_data-1.csv')
-    similar_faqs = find_similar_faqs(faq_system, pending_item['question'])
+        # 類似FAQ検索
+        faq_system.load_faq_data('faq_data-1.csv')
+        similar_faqs = find_similar_faqs(faq_system, pending_item['question'])
 
-    print(f"[DEBUG] 重複チェック - 質問: {pending_item['question']}")
-    print(f"[DEBUG] 類似FAQ数: {len(similar_faqs)}")
+        print(f"[DEBUG] 重複チェック - 質問: {pending_item['question']}")
+        print(f"[DEBUG] 類似FAQ数: {len(similar_faqs)}")
 
-    return render_template('check_duplicates.html',
-                         pending_item=pending_item,
-                         similar_faqs=similar_faqs)
+        return render_template('check_duplicates.html',
+                             pending_item=pending_item,
+                             similar_faqs=similar_faqs)
+    except Exception as e:
+        print(f"[ERROR] 重複チェックでエラー: {e}")
+        import traceback
+        traceback.print_exc()
+        return f"エラーが発生しました: {e}", 500
 
 @app.route('/feedback', methods=['POST'])
 def feedback():
