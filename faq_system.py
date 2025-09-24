@@ -512,17 +512,20 @@ class FAQSystem:
 
             if response.status_code == 200:
                 result = response.json()
+                print(f"[DEBUG] Claude API成功 - ステータス: 200")
                 content = result['content'][0]['text']
+                print(f"[DEBUG] Claude レスポンス内容（最初の200文字）: {content[:200]}...")
 
                 # JSON部分を抽出
                 import re
                 json_match = re.search(r'\{.*\}', content, re.DOTALL)
                 if json_match:
                     qa_data = json.loads(json_match.group())
+                    print(f"[DEBUG] JSONデータ抽出成功: {qa_data}")
                     return qa_data
                 else:
-                    print("Claude の回答からJSONを抽出できませんでした")
-                    return None
+                    print(f"[DEBUG] Claude の回答からJSONを抽出できませんでした。モック機能に切り替えます")
+                    return self._mock_claude_improvement(user_question, current_answer)
             else:
                 print(f"[DEBUG] Claude API エラー - ステータス: {response.status_code}")
                 print(f"[DEBUG] エラーレスポンス: {response.text}")
