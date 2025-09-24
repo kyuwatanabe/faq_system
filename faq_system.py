@@ -182,6 +182,14 @@ class FAQSystem:
 
         return score
 
+    def calculate_similarity(self, question1: str, question2: str) -> float:
+        """2つの質問の類似度を計算（0.0〜1.0）"""
+        return difflib.SequenceMatcher(
+            None,
+            question1.lower(),
+            question2.lower()
+        ).ratio()
+
     def search_faq(self, user_question: str, threshold: float = 0.3) -> List[Dict]:
         """ユーザーの質問に対して最適なFAQを検索"""
         if not user_question.strip():
