@@ -463,7 +463,7 @@ class FAQSystem:
             }
 
             data = {
-                'model': 'claude-3-sonnet-20240229',
+                'model': 'claude-3-5-sonnet-20241022',
                 'max_tokens': 1000,
                 'messages': [
                     {
@@ -498,7 +498,10 @@ class FAQSystem:
                 return None
 
         except Exception as e:
-            print(f"Claude API 呼び出しエラー: {e}")
+            print(f"[DEBUG] Claude API 呼び出しエラー詳細: {e}")
+            print(f"[DEBUG] API Key設定: {'設定済み' if api_key else '未設定'}")
+            if hasattr(e, 'response'):
+                print(f"[DEBUG] レスポンス: {e.response}")
             return None
 
     def auto_improve_qa(self, user_question: str, matched_question: str, matched_answer: str) -> bool:
