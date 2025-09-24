@@ -458,7 +458,7 @@ class FAQSystem:
 
             headers = {
                 'Content-Type': 'application/json',
-                'X-API-Key': api_key,
+                'x-api-key': api_key,
                 'anthropic-version': '2023-06-01'
             }
 
@@ -494,7 +494,10 @@ class FAQSystem:
                     print("Claude の回答からJSONを抽出できませんでした")
                     return None
             else:
-                print(f"Claude API エラー: {response.status_code}")
+                print(f"[DEBUG] Claude API エラー - ステータス: {response.status_code}")
+                print(f"[DEBUG] エラーレスポンス: {response.text}")
+                print(f"[DEBUG] リクエストヘッダー: {headers}")
+                print(f"[DEBUG] モデル名: {data['model']}")
                 return None
 
         except Exception as e:
