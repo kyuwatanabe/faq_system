@@ -189,7 +189,7 @@ def feedback():
                     print(f"[DEBUG] 自動改善成功")
                     return jsonify({
                         'status': 'success',
-                        'message': 'フィードバックありがとうございます。Claudeが改善されたQ&Aを自動生成しました。管理者による承認後にFAQに追加されます。'
+                        'message': 'フィードバックありがとうございます。【Claude API】が改善されたQ&Aを自動生成しました。管理者による承認後にFAQに追加されます。'
                     })
                 else:
                     print(f"[DEBUG] 自動改善失敗")
@@ -212,7 +212,7 @@ def feedback():
                     print(f"[DEBUG] モック改善成功")
                     return jsonify({
                         'status': 'success',
-                        'message': 'フィードバックありがとうございます。モック機能が改善されたQ&Aを自動生成しました。管理者による承認後にFAQに追加されます。'
+                        'message': 'フィードバックありがとうございます。【モック機能】が改善されたQ&Aを自動生成しました。管理者による承認後にFAQに追加されます。'
                     })
                 else:
                     print(f"[DEBUG] モック改善失敗")
