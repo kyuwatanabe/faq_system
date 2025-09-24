@@ -269,12 +269,6 @@
                            style="background: #17a2b8; color: white;">
                             🔍 重複チェック
                         </a>
-                        <form method="POST" action="/admin/approve/{{ item.id }}" style="display: inline;">
-                            <button type="submit" class="btn btn-approve"
-                                    onclick="return confirm('このQ&AをFAQに追加しますか？')">
-                                ✅ 承認して追加
-                            </button>
-                        </form>
                         <form method="POST" action="/admin/reject/{{ item.id }}" style="display: inline;">
                             <button type="submit" class="btn btn-reject"
                                     onclick="return confirm('このQ&Aを却下しますか？')">

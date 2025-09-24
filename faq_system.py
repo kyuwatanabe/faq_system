@@ -124,6 +124,24 @@ class FAQSystem:
                 return True
         return False
 
+    def edit_pending_qa(self, qa_id: str, question: str = None, answer: str = None, keywords: str = None, category: str = None) -> bool:
+        """承認待ちQ&Aを編集"""
+        for pending in self.pending_qa:
+            if pending['id'] == qa_id:
+                if question:
+                    pending['question'] = question
+                if answer:
+                    pending['answer'] = answer
+                if keywords is not None:
+                    pending['keywords'] = keywords
+                if category:
+                    pending['category'] = category
+
+                self.save_pending_qa()
+                print(f"[編集] 承認待ちQ&A「{qa_id}」を編集しました")
+                return True
+        return False
+
     def get_keyword_score(self, user_question: str, faq_question: str, faq_keywords: str = '') -> float:
         """キーワードベースのスコアを計算"""
         # 料金関連キーワード

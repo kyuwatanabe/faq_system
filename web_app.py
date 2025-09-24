@@ -111,6 +111,21 @@ def reject_qa(qa_id):
         print(f"[DEBUG] Q&A却下失敗: {qa_id}")
     return redirect(url_for('review_pending'))
 
+@app.route('/admin/edit_pending/<qa_id>', methods=['POST'])
+def edit_pending_qa(qa_id):
+    """承認待ちQ&Aを編集"""
+    question = request.form.get('question', '').strip()
+    answer = request.form.get('answer', '').strip()
+    keywords = request.form.get('keywords', '').strip()
+    category = request.form.get('category', '').strip()
+
+    if faq_system.edit_pending_qa(qa_id, question, answer, keywords, category):
+        print(f"[DEBUG] 承認待ちQ&A編集成功: {qa_id}")
+    else:
+        print(f"[DEBUG] 承認待ちQ&A編集失敗: {qa_id}")
+
+    return redirect(url_for('check_duplicates', qa_id=qa_id))
+
 @app.route('/admin/check_duplicates/<qa_id>')
 def check_duplicates(qa_id):
     """承認待ちQ&Aの重複チェック"""
