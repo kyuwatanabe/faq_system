@@ -496,16 +496,13 @@ class FAQSystem:
             else:
                 print(f"[DEBUG] Claude API エラー - ステータス: {response.status_code}")
                 print(f"[DEBUG] エラーレスポンス: {response.text}")
-                print(f"[DEBUG] リクエストヘッダー: {headers}")
-                print(f"[DEBUG] モデル名: {data['model']}")
-                return None
+                print(f"[DEBUG] APIが失敗、モック機能に切り替えます")
+                return self._mock_claude_improvement(user_question, current_answer)
 
         except Exception as e:
             print(f"[DEBUG] Claude API 呼び出しエラー詳細: {e}")
-            print(f"[DEBUG] API Key設定: {'設定済み' if api_key else '未設定'}")
-            if hasattr(e, 'response'):
-                print(f"[DEBUG] レスポンス: {e.response}")
-            return None
+            print(f"[DEBUG] 例外が発生、モック機能に切り替えます")
+            return self._mock_claude_improvement(user_question, current_answer)
 
     def auto_improve_qa(self, user_question: str, matched_question: str, matched_answer: str) -> bool:
         """不満足なQ&Aを自動改善して承認待ちキューに追加"""
