@@ -499,10 +499,14 @@ class FAQSystem:
                 ]
             }
 
+            # JSONをダンプして確実にエスケープする
+            import json
+            json_data = json.dumps(data, ensure_ascii=False)
+
             response = requests.post(
                 'https://api.anthropic.com/v1/messages',
                 headers=headers,
-                json=data,
+                data=json_data.encode('utf-8'),
                 timeout=30
             )
 
