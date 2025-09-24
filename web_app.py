@@ -176,6 +176,9 @@ def feedback():
         # Claude API が設定されているかチェック
         import os
         api_key = os.getenv('CLAUDE_API_KEY')
+        print(f"[DEBUG] CLAUDE_API_KEY exists: {bool(api_key)}")
+        if api_key:
+            print(f"[DEBUG] API key starts with: {api_key[:10] if len(api_key) > 10 else 'too short'}")
 
         if api_key:
             # Claude で自動改善を試行
@@ -228,5 +231,11 @@ def feedback():
 
 if __name__ == '__main__':
     import os
+    # 起動時に環境変数をチェック
+    api_key = os.getenv('CLAUDE_API_KEY')
+    print(f"[STARTUP] CLAUDE_API_KEY is {'set' if api_key else 'NOT set'}")
+    if api_key:
+        print(f"[STARTUP] API key starts with: {api_key[:10]}...")
+
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)
