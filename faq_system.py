@@ -613,6 +613,153 @@ class FAQSystem:
                 'category': "その他"
             }
 
+    def generate_faqs_from_document(self, pdf_path: str, num_questions: int = 3, category: str = "AI生成") -> list:
+        """PDFドキュメントからFAQを自動生成"""
+        try:
+            import requests
+            import json
+            import os
+
+            # Claude API設定
+            api_key = os.getenv('CLAUDE_API_KEY')
+            if not api_key:
+                print("CLAUDE_API_KEY未設定。モック生成機能を使用します...")
+                return self._mock_faq_generation(num_questions, category)
+
+            # PDFからテキストを抽出
+            pdf_content = self.extract_text_from_pdf(pdf_path)
+            if not pdf_content:
+                print(f"PDFの読み込みに失敗: {pdf_path}")
+                return []
+
+            # 既存のFAQコンテキストを構築（重複を避けるため）
+            existing_questions = [faq['question'] for faq in self.faq_data]
+            existing_context = "\n".join(existing_questions[:20]) if existing_questions else "なし"
+
+            # プロンプト作成
+            prompt = f"""
+あなたはアメリカビザ専門のFAQシステムのコンテンツ生成エキスパートです。
+
+【タスク】
+以下のPDFドキュメントから、{num_questions}個の有用なFAQ（質問と回答のペア）を生成してください。
+
+【ソースドキュメント】
+{pdf_content[:8000]}  # トークン制限を考慮
+
+【既存のFAQ質問（重複を避けるため）】
+{existing_context}
+
+【生成要件】
+1. 実用的で具体的な質問を作成する
+2. 日本人がよく聞きそうな質問にする
+3. 回答は正確で詳細、かつ分かりやすい日本語で
+4. 既存の質問と重複しないようにする
+5. アメリカビザに関連する内容に限定する
+6. 専門用語には適切な説明を加える
+
+【出力形式】
+以下のJSON配列形式で{num_questions}個のFAQを出力してください：
+[
+  {{
+    "question": "具体的な質問文",
+    "answer": "詳細で実用的な回答文",
+    "keywords": "関連キーワード1;関連キーワード2;関連キーワード3",
+    "category": "{category}"
+  }},
+  ...
+]
+"""
+
+            headers = {
+                'Content-Type': 'application/json',
+                'x-api-key': api_key,
+                'anthropic-version': '2023-06-01'
+            }
+
+            data = {
+                'model': 'claude-3-haiku-20240307',
+                'max_tokens': 2000,
+                'messages': [
+                    {
+                        'role': 'user',
+                        'content': prompt
+                    }
+                ]
+            }
+
+            json_data = json.dumps(data, ensure_ascii=False)
+
+            response = requests.post(
+                'https://api.anthropic.com/v1/messages',
+                headers=headers,
+                data=json_data.encode('utf-8'),
+                timeout=60
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                content = result['content'][0]['text']
+                print(f"[DEBUG] Claude FAQ生成成功")
+
+                # JSON部分を抽出
+                import re
+                json_match = re.search(r'\[.*\]', content, re.DOTALL)
+                if json_match:
+                    json_str = json_match.group()
+                    try:
+                        faqs = json.loads(json_str)
+                        print(f"[DEBUG] {len(faqs)}件のFAQを生成しました")
+                        return faqs
+                    except json.JSONDecodeError as e:
+                        print(f"[DEBUG] JSONパースエラー: {e}")
+                        return self._mock_faq_generation(num_questions, category)
+                else:
+                    print(f"[DEBUG] Claude の回答からJSONを抽出できませんでした")
+                    return self._mock_faq_generation(num_questions, category)
+            else:
+                print(f"[DEBUG] Claude API エラー - ステータス: {response.status_code}")
+                return self._mock_faq_generation(num_questions, category)
+
+        except Exception as e:
+            print(f"[DEBUG] FAQ生成エラー: {e}")
+            return self._mock_faq_generation(num_questions, category)
+
+    def _mock_faq_generation(self, num_questions: int, category: str) -> list:
+        """Claude API未設定時のモック FAQ 生成"""
+        mock_faqs = [
+            {
+                'question': 'H-1Bビザの申請に必要な最低学歴要件は何ですか？',
+                'answer': 'H-1Bビザの申請には、通常4年制大学の学士号以上の学位が必要です。ただし、学位がない場合でも、3年間の実務経験が1年間の大学教育に相当するとみなされ、合計12年間の実務経験があれば申請可能な場合があります。',
+                'keywords': 'H-1B;学歴要件;学士号;実務経験',
+                'category': category
+            },
+            {
+                'question': 'アメリカビザ面接で聞かれる一般的な質問は何ですか？',
+                'answer': '面接では以下の質問がよく聞かれます：1)渡米目的、2)滞在期間、3)職歴や学歴、4)家族構成、5)帰国予定、6)経済状況など。回答は簡潔かつ正直に、必要な書類を準備して面接に臨むことが重要です。',
+                'keywords': '面接;質問;準備;書類',
+                'category': category
+            },
+            {
+                'question': 'ESTA申請が拒否された場合はどうすればよいですか？',
+                'answer': 'ESTA申請が拒否された場合、観光ビザ（B-2）または商用ビザ（B-1）を大使館で申請する必要があります。拒否理由を確認し、適切な書類を準備して面接予約を取ってください。ESTA拒否歴がある場合は面接で正直に説明することが重要です。',
+                'keywords': 'ESTA;拒否;観光ビザ;B-1;B-2;面接',
+                'category': category
+            },
+            {
+                'question': 'アメリカでの滞在期間を延長することは可能ですか？',
+                'answer': 'はい、可能です。滞在期限の45日前までにUSCIS（米国移民局）にForm I-539を提出して延長申請を行います。ただし、ESTA（ビザ免除プログラム）で入国した場合は延長できません。延長が承認されるには正当な理由と十分な資金証明が必要です。',
+                'keywords': '滞在延長;I-539;USCIS;ESTA;資金証明',
+                'category': category
+            },
+            {
+                'question': '学生ビザ（F-1）から就労ビザ（H-1B）への変更手続きは？',
+                'answer': 'F-1からH-1Bへの変更は「ステータス変更」申請で行います。雇用主がH-1B申請を行い、同時にUSCISにForm I-129とI-539を提出します。OPT期間中に申請することが多く、H-1Bの抽選に当選し承認されれば、アメリカを出国することなくステータス変更が可能です。',
+                'keywords': 'F-1;H-1B;ステータス変更;I-129;I-539;OPT',
+                'category': category
+            }
+        ]
+        return mock_faqs[:num_questions]
+
 
 def admin_mode(faq):
     """管理者モード"""

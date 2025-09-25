@@ -158,6 +158,67 @@ def check_duplicates(qa_id):
         traceback.print_exc()
         return f"エラーが発生しました: {e}", 500
 
+@app.route('/admin/auto_generate', methods=['POST'])
+def auto_generate_faqs():
+    """FAQ自動生成API"""
+    try:
+        source_file = request.form.get('source_file', '').strip()
+        num_questions = int(request.form.get('num_questions', 3))
+        category = request.form.get('category', 'AI生成').strip()
+
+        if not source_file:
+            return jsonify({'success': False, 'message': 'ソースファイルを選択してください'})
+
+        if num_questions < 1 or num_questions > 10:
+            return jsonify({'success': False, 'message': '生成数は1-10の範囲で指定してください'})
+
+        # PDFファイルのパスを構築
+        import os
+        reference_dir = r'C:\Users\GF001\Desktop\システム開発\faq_system250924\reference_docs'
+        pdf_path = os.path.join(reference_dir, source_file)
+
+        if not os.path.exists(pdf_path):
+            return jsonify({'success': False, 'message': f'ファイルが見つかりません: {source_file}'})
+
+        print(f"[DEBUG] FAQ自動生成開始 - ファイル: {source_file}, 数: {num_questions}")
+
+        # FAQ生成
+        generated_faqs = faq_system.generate_faqs_from_document(pdf_path, num_questions, category)
+
+        if not generated_faqs:
+            return jsonify({'success': False, 'message': 'FAQの生成に失敗しました'})
+
+        # 承認待ちキューに追加
+        added_count = 0
+        for faq in generated_faqs:
+            try:
+                qa_id = faq_system.add_pending_qa(
+                    question=faq.get('question', ''),
+                    answer=faq.get('answer', ''),
+                    keywords=faq.get('keywords', ''),
+                    category=faq.get('category', category),
+                    user_question=f"[自動生成] {source_file}から生成"
+                )
+                added_count += 1
+                print(f"[DEBUG] 承認待ちQ&Aに追加: {qa_id}")
+            except Exception as e:
+                print(f"[DEBUG] 承認待ちQ&A追加エラー: {e}")
+
+        if added_count > 0:
+            return jsonify({
+                'success': True,
+                'generated_count': added_count,
+                'message': f'{added_count}件のQ&Aを承認待ちキューに追加しました'
+            })
+        else:
+            return jsonify({'success': False, 'message': '承認待ちキューへの追加に失敗しました'})
+
+    except Exception as e:
+        print(f"[DEBUG] FAQ自動生成エラー: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'エラーが発生しました: {str(e)}'})
+
 @app.route('/feedback', methods=['POST'])
 def feedback():
     """ユーザーフィードバックを処理"""

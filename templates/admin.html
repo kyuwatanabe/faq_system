@@ -198,6 +198,51 @@
                 margin-right: 5px;
                 margin-bottom: 5px;
             }
+
+            .desktop-only {
+                display: none !important;
+            }
+        }
+
+        .auto-generate-section {
+            background: #f0f8ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border: 2px solid #667eea;
+        }
+
+        .auto-generate-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .generate-status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .generate-status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .generate-status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        .generate-status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            display: block;
         }
 
         .faq-number {
@@ -287,6 +332,30 @@
                 </form>
             </div>
 
+            <!-- FAQ自動生成 (PCのみ) -->
+            <div class="auto-generate-section desktop-only">
+                <h2>FAQ自動生成</h2>
+                <form action="/admin/auto_generate" method="post" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="source_file">ソースファイル:</label>
+                        <select id="source_file" name="source_file" required>
+                            <option value="">ファイルを選択してください</option>
+                            <option value="第2章.pdf">第2章.pdf</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="num_questions">生成するQ&A数:</label>
+                        <input type="number" id="num_questions" name="num_questions" min="1" max="10" value="3" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="category">カテゴリ:</label>
+                        <input type="text" id="category" name="category" value="AI生成" maxlength="50">
+                    </div>
+                    <button type="submit" class="btn" id="generateBtn">FAQ自動生成</button>
+                    <div id="generateStatus" class="generate-status"></div>
+                </form>
+            </div>
+
             <!-- FAQ一覧 -->
             <div class="faq-list">
                 <h2>FAQ一覧</h2>
@@ -348,6 +417,47 @@
                 e.preventDefault();
                 alert('質問と回答の両方を入力してください');
             }
+        });
+
+        // FAQ自動生成機能
+        document.querySelector('.auto-generate-section form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const generateBtn = document.getElementById('generateBtn');
+            const statusDiv = document.getElementById('generateStatus');
+
+            // ボタンを無効化してローディング表示
+            generateBtn.disabled = true;
+            generateBtn.textContent = '生成中...';
+            statusDiv.className = 'generate-status loading';
+            statusDiv.textContent = 'FAQ生成中です。しばらくお待ちください...';
+
+            fetch('/admin/auto_generate', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    statusDiv.className = 'generate-status success';
+                    statusDiv.textContent = `成功！${data.generated_count}件のQ&Aを承認待ちキューに追加しました。`;
+                    // フォームをリセット
+                    this.reset();
+                } else {
+                    statusDiv.className = 'generate-status error';
+                    statusDiv.textContent = `エラー: ${data.message}`;
+                }
+            })
+            .catch(error => {
+                statusDiv.className = 'generate-status error';
+                statusDiv.textContent = `エラー: ${error.message}`;
+            })
+            .finally(() => {
+                // ボタンを再有効化
+                generateBtn.disabled = false;
+                generateBtn.textContent = 'FAQ自動生成';
+            });
         });
     </script>
 </body>
