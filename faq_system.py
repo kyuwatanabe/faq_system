@@ -634,9 +634,18 @@ class FAQSystem:
                 print(f"PDFの読み込みに失敗: {pdf_path}")
                 return []
 
-            # 既存のFAQコンテキストを構築（重複を避けるため）
+            # 既存のFAQと承認待ちQ&Aの両方をチェック（重複を避けるため）
             existing_questions = [faq['question'] for faq in self.faq_data]
-            existing_context = "\n".join(existing_questions[:20]) if existing_questions else "なし"
+
+            # 承認待ちQ&Aも読み込んで追加
+            self.load_pending_qa()
+            pending_questions = [item['question'] for item in self.pending_qa if 'question' in item]
+
+            # 既存と承認待ちを統合
+            all_existing_questions = existing_questions + pending_questions
+            existing_context = "\n".join(all_existing_questions[:30]) if all_existing_questions else "なし"
+
+            print(f"[DEBUG] 重複チェック対象 - 既存FAQ: {len(existing_questions)}件, 承認待ち: {len(pending_questions)}件")
 
             # プロンプト作成
             prompt = f"""
@@ -648,16 +657,18 @@ class FAQSystem:
 【ソースドキュメント】
 {pdf_content[:8000]}  # トークン制限を考慮
 
-【既存のFAQ質問（重複を避けるため）】
+【既存のFAQ質問と承認待ちQ&A（重複を避けるため）】
 {existing_context}
 
 【生成要件】
 1. 実用的で具体的な質問を作成する
 2. 日本人がよく聞きそうな質問にする
 3. 回答は正確で詳細、かつ分かりやすい日本語で
-4. 既存の質問と重複しないようにする
-5. アメリカビザに関連する内容に限定する
-6. 専門用語には適切な説明を加える
+4. **重要**: 上記の既存質問と類似または重複する内容は絶対に避ける
+5. 既存質問と意味的に重複する場合は、異なる角度・視点からの質問にする
+6. アメリカビザに関連する内容に限定する
+7. 専門用語には適切な説明を加える
+8. 新規性と独自性を重視する
 
 【出力形式】
 以下のJSON配列形式で{num_questions}個のFAQを出力してください：
@@ -728,6 +739,13 @@ class FAQSystem:
 
     def _mock_faq_generation(self, num_questions: int, category: str) -> list:
         """Claude API未設定時のモック FAQ 生成"""
+        # 既存のFAQと承認待ちQ&Aを取得して重複を避ける
+        existing_questions = [faq['question'] for faq in self.faq_data]
+        self.load_pending_qa()
+        pending_questions = [item['question'] for item in self.pending_qa if 'question' in item]
+        all_existing_questions = existing_questions + pending_questions
+        print(f"[DEBUG] モック生成 - 重複チェック対象: 既存FAQ {len(existing_questions)}件, 承認待ち {len(pending_questions)}件")
+
         base_mock_faqs = [
             {
                 'question': 'H-1Bビザの申請に必要な最低学歴要件は何ですか？',
@@ -791,17 +809,46 @@ class FAQSystem:
             }
         ]
 
-        # 要求された数だけFAQを生成（基本FAQをベースに繰り返しまたは拡張）
+        # 重複を避けながらFAQを生成
+        def is_similar_question(question, existing_questions):
+            """簡単な重複チェック（キーワードベース）"""
+            question_lower = question.lower()
+            for existing in existing_questions:
+                existing_lower = existing.lower()
+                # キーワードベースの簡易マッチング
+                if (any(word in existing_lower for word in question_lower.split() if len(word) > 2) and
+                    len(set(question_lower.split()) & set(existing_lower.split())) >= 2):
+                    return True
+            return False
+
+        # 要求された数だけFAQを生成（重複を避けながら）
         mock_faqs = []
         print(f"[DEBUG] モック生成要求数: {num_questions}, 基本FAQ数: {len(base_mock_faqs)}")
+
         for i in range(num_questions):
             base_faq = base_mock_faqs[i % len(base_mock_faqs)].copy()
-            if i >= len(base_mock_faqs):
-                # ベースを超える場合は質問を少し変更
-                base_faq['question'] = f"【追加生成】{base_faq['question']}"
-                base_faq['answer'] = f"【モック生成】{base_faq['answer']}"
-            mock_faqs.append(base_faq)
-            print(f"[DEBUG] モックFAQ{i+1}生成: {base_faq['question'][:30]}...")
+
+            # 重複チェック
+            if not is_similar_question(base_faq['question'], all_existing_questions):
+                if i >= len(base_mock_faqs):
+                    # ベースを超える場合は質問を少し変更
+                    base_faq['question'] = f"【追加生成】{base_faq['question']}"
+                    base_faq['answer'] = f"【モック生成】{base_faq['answer']}"
+                mock_faqs.append(base_faq)
+                print(f"[DEBUG] モックFAQ{len(mock_faqs)}生成: {base_faq['question'][:30]}...")
+            else:
+                print(f"[DEBUG] 重複回避: {base_faq['question'][:30]}... をスキップ")
+
+        # 足りない場合は追加のバリエーション生成
+        while len(mock_faqs) < num_questions:
+            additional_faq = {
+                'question': f'【モック生成{len(mock_faqs)+1}】アメリカビザに関する質問です',
+                'answer': f'【モック生成】これはテスト用の自動生成された回答です（{len(mock_faqs)+1}番目）。実際のビザ情報については専門家にご相談ください。',
+                'keywords': f'モック;テスト;{category}',
+                'category': category
+            }
+            mock_faqs.append(additional_faq)
+            print(f"[DEBUG] 追加生成FAQ{len(mock_faqs)}: {additional_faq['question'][:30]}...")
 
         print(f"[DEBUG] 最終生成数: {len(mock_faqs)}")
         return mock_faqs
