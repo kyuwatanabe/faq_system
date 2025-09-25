@@ -175,8 +175,8 @@ def auto_generate_faqs():
         if not uploaded_file.filename.lower().endswith('.pdf'):
             return jsonify({'success': False, 'message': 'PDFファイルのみアップロード可能です'})
 
-        if num_questions < 1 or num_questions > 10:
-            return jsonify({'success': False, 'message': '生成数は1-10の範囲で指定してください'})
+        if num_questions < 1 or num_questions > 50:
+            return jsonify({'success': False, 'message': '生成数は1-50の範囲で指定してください'})
 
         # ファイルサイズチェック（10MB制限）
         uploaded_file.seek(0, 2)  # ファイルの末尾に移動

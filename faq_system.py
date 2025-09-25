@@ -728,7 +728,7 @@ class FAQSystem:
 
     def _mock_faq_generation(self, num_questions: int, category: str) -> list:
         """Claude API未設定時のモック FAQ 生成"""
-        mock_faqs = [
+        base_mock_faqs = [
             {
                 'question': 'H-1Bビザの申請に必要な最低学歴要件は何ですか？',
                 'answer': 'H-1Bビザの申請には、通常4年制大学の学士号以上の学位が必要です。ただし、学位がない場合でも、3年間の実務経験が1年間の大学教育に相当するとみなされ、合計12年間の実務経験があれば申請可能な場合があります。',
@@ -758,9 +758,50 @@ class FAQSystem:
                 'answer': 'F-1からH-1Bへの変更は「ステータス変更」申請で行います。雇用主がH-1B申請を行い、同時にUSCISにForm I-129とI-539を提出します。OPT期間中に申請することが多く、H-1Bの抽選に当選し承認されれば、アメリカを出国することなくステータス変更が可能です。',
                 'keywords': 'F-1;H-1B;ステータス変更;I-129;I-539;OPT',
                 'category': category
+            },
+            {
+                'question': 'B-1/B-2ビザの有効期間と滞在期間の違いは何ですか？',
+                'answer': 'ビザの有効期間は入国可能な期間、滞在期間は実際にアメリカに滞在できる期間です。B-1/B-2ビザは通常10年有効ですが、一回の滞在は最大6ヶ月までです。滞在期間はI-94で確認でき、この期間を超える場合は延長申請が必要です。',
+                'keywords': 'B-1;B-2;有効期間;滞在期間;I-94',
+                'category': category
+            },
+            {
+                'question': 'グリーンカード申請中にアメリカを出国できますか？',
+                'answer': 'グリーンカード申請中の出国は可能ですが、注意が必要です。調整申請（I-485）中の場合、事前許可（Advance Parole）の取得が必要です。許可なく出国すると申請が放棄されたとみなされる場合があります。',
+                'keywords': 'グリーンカード;I-485;Advance Parole;出国',
+                'category': category
+            },
+            {
+                'question': 'L-1ビザの申請要件と取得までの期間は？',
+                'answer': 'L-1ビザは企業内転勤者向けビザで、海外関連会社で1年以上勤務していることが要件です。L-1Aは管理職・役員向け、L-1Bは専門知識を持つ社員向けです。申請から取得まで通常3-6ヶ月かかります。',
+                'keywords': 'L-1;企業内転勤;L-1A;L-1B;専門知識',
+                'category': category
+            },
+            {
+                'question': 'E-2投資家ビザの最低投資額はいくらですか？',
+                'answer': 'E-2ビザに法定最低投資額はありませんが、実質的に事業を運営できる「相当額」の投資が必要です。一般的に15-20万ドル以上が目安とされます。投資額は事業の性質や規模により異なり、投資の実質性と継続性が重要です。',
+                'keywords': 'E-2;投資家ビザ;投資額;事業運営',
+                'category': category
+            },
+            {
+                'question': 'O-1ビザ申請時の推薦状は何通必要ですか？',
+                'answer': 'O-1ビザには最低8通の推薦状が推奨されています。業界の専門家、同僚、クライアントからの推薦状が効果的です。推薦者の資格と申請者との関係を明確に示し、具体的な功績や能力について詳述することが重要です。',
+                'keywords': 'O-1;推薦状;専門家;功績;能力',
+                'category': category
             }
         ]
-        return mock_faqs[:num_questions]
+
+        # 要求された数だけFAQを生成（基本FAQをベースに繰り返しまたは拡張）
+        mock_faqs = []
+        for i in range(num_questions):
+            base_faq = base_mock_faqs[i % len(base_mock_faqs)].copy()
+            if i >= len(base_mock_faqs):
+                # ベースを超える場合は質問を少し変更
+                base_faq['question'] = f"【追加生成】{base_faq['question']}"
+                base_faq['answer'] = f"【モック生成】{base_faq['answer']}"
+            mock_faqs.append(base_faq)
+
+        return mock_faqs
 
 
 def admin_mode(faq):
