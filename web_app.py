@@ -53,9 +53,10 @@ def add_faq():
     """FAQ追加"""
     question = request.form.get('question', '').strip()
     answer = request.form.get('answer', '').strip()
+    category = request.form.get('category', '一般').strip()
 
     if question and answer:
-        faq_system.add_faq(question, answer)
+        faq_system.add_faq(question, answer, category=category)
         faq_system.save_faq_data()
 
     return redirect(url_for('admin'))
@@ -65,8 +66,9 @@ def edit_faq(index):
     """FAQ編集"""
     question = request.form.get('question', '').strip()
     answer = request.form.get('answer', '').strip()
+    category = request.form.get('category', '').strip()
 
-    if faq_system.edit_faq(index, question if question else None, answer if answer else None):
+    if faq_system.edit_faq(index, question if question else None, answer if answer else None, category if category else None):
         faq_system.save_faq_data()
 
     return redirect(url_for('admin'))

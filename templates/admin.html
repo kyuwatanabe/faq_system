@@ -271,6 +271,21 @@
             box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
         }
 
+        .faq-category {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .category-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
         .faq-number {
             background: #667eea;
             color: white;
@@ -354,6 +369,10 @@
                         <label for="answer">回答:</label>
                         <textarea id="answer" name="answer" required maxlength="1000"></textarea>
                     </div>
+                    <div class="form-group">
+                        <label for="category">カテゴリ:</label>
+                        <input type="text" id="category" name="category" maxlength="50" placeholder="例: ビザ基本, 就労ビザ, 学生ビザ" value="一般">
+                    </div>
                     <button type="submit" class="btn">FAQ追加</button>
                 </form>
             </div>
@@ -398,6 +417,7 @@
                     <div class="faq-content">
                         <div class="faq-question">{{ faq.question }}</div>
                         <div class="faq-answer">{{ faq.answer }}</div>
+                        <div class="faq-category">カテゴリ: <span class="category-badge">{{ faq.get('category', '一般') }}</span></div>
                     </div>
 
                     <!-- 編集フォーム -->
@@ -411,6 +431,10 @@
                             <div class="form-group">
                                 <label>回答:</label>
                                 <textarea name="answer" maxlength="1000">{{ faq.answer }}</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>カテゴリ:</label>
+                                <input type="text" name="category" value="{{ faq.get('category', '一般') }}" maxlength="50" placeholder="例: ビザ基本, 就労ビザ, 学生ビザ">
                             </div>
                             <button type="submit" class="btn">更新</button>
                             <button type="button" class="btn" onclick="toggleEdit({{ loop.index0 }})">キャンセル</button>

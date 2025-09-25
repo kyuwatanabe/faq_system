@@ -290,13 +290,15 @@ class FAQSystem:
             'category': category.strip()
         })
 
-    def edit_faq(self, index: int, question: str = None, answer: str = None) -> bool:
+    def edit_faq(self, index: int, question: str = None, answer: str = None, category: str = None) -> bool:
         """FAQを編集"""
         if 0 <= index < len(self.faq_data):
             if question:
                 self.faq_data[index]['question'] = question.strip()
             if answer:
                 self.faq_data[index]['answer'] = answer.strip()
+            if category is not None:
+                self.faq_data[index]['category'] = category.strip() if category.strip() else '一般'
             return True
         return False
 
