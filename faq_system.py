@@ -793,6 +793,7 @@ class FAQSystem:
 
         # 要求された数だけFAQを生成（基本FAQをベースに繰り返しまたは拡張）
         mock_faqs = []
+        print(f"[DEBUG] モック生成要求数: {num_questions}, 基本FAQ数: {len(base_mock_faqs)}")
         for i in range(num_questions):
             base_faq = base_mock_faqs[i % len(base_mock_faqs)].copy()
             if i >= len(base_mock_faqs):
@@ -800,7 +801,9 @@ class FAQSystem:
                 base_faq['question'] = f"【追加生成】{base_faq['question']}"
                 base_faq['answer'] = f"【モック生成】{base_faq['answer']}"
             mock_faqs.append(base_faq)
+            print(f"[DEBUG] モックFAQ{i+1}生成: {base_faq['question'][:30]}...")
 
+        print(f"[DEBUG] 最終生成数: {len(mock_faqs)}")
         return mock_faqs
 
 
