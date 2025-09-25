@@ -174,7 +174,13 @@ def auto_generate_faqs():
 
         # PDFファイルのパスを構築
         import os
-        reference_dir = r'C:\Users\GF001\Desktop\システム開発\faq_system250924\reference_docs'
+        # 本番環境では reference_docs フォルダを使用
+        reference_dir = os.path.join(os.path.dirname(__file__), 'reference_docs')
+
+        # ローカル開発環境の場合は別のパスを使用
+        if not os.path.exists(reference_dir):
+            reference_dir = r'C:\Users\GF001\Desktop\システム開発\faq_system250924\reference_docs'
+
         pdf_path = os.path.join(reference_dir, source_file)
 
         if not os.path.exists(pdf_path):
