@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>アメリカビザサポートデスク</title>
+    <title>GFアメリカビザサポートデスク</title>
     <style>
         * {
             margin: 0;
@@ -18,7 +18,14 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 20px;
+            padding: 10px;
+        }
+
+        /* スマホ対応 */
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+            }
         }
 
         .container {
@@ -40,6 +47,7 @@
         .header h1 {
             font-size: 28px;
             margin-bottom: 10px;
+            line-height: 1.3;
         }
 
         .header p {
@@ -47,10 +55,34 @@
             opacity: 0.9;
         }
 
+        /* スマホ対応 - ヘッダー */
+        @media (max-width: 768px) {
+            .header {
+                padding: 20px 15px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+                margin-bottom: 8px;
+            }
+
+            .header p {
+                font-size: 14px;
+            }
+        }
+
         .chat-container {
             padding: 30px;
             max-height: 500px;
             overflow-y: auto;
+        }
+
+        /* スマホ対応 - チャット */
+        @media (max-width: 768px) {
+            .chat-container {
+                padding: 15px;
+                max-height: 400px;
+            }
         }
 
         .chat-messages {
@@ -62,6 +94,8 @@
             padding: 15px;
             border-radius: 10px;
             max-width: 80%;
+            word-wrap: break-word;
+            word-break: break-word;
         }
 
         .user-message {
@@ -73,6 +107,16 @@
         .bot-message {
             background: #f9f9f9;
             border: 1px solid #ddd;
+        }
+
+        /* スマホ対応 - メッセージ */
+        @media (max-width: 768px) {
+            .message {
+                max-width: 95%;
+                padding: 12px;
+                margin-bottom: 15px;
+                font-size: 14px;
+            }
         }
 
         .confirmation-box {
@@ -108,6 +152,14 @@
             border-top: 1px solid #eee;
         }
 
+        /* スマホ対応 - 入力欄 */
+        @media (max-width: 768px) {
+            .input-container {
+                padding: 15px;
+                gap: 8px;
+            }
+        }
+
         #questionInput {
             flex: 1;
             padding: 12px;
@@ -131,6 +183,23 @@
             cursor: pointer;
             font-size: 16px;
             transition: transform 0.3s;
+            white-space: nowrap;
+        }
+
+        /* スマホ対応 - 入力フォーム */
+        @media (max-width: 768px) {
+            #questionInput {
+                padding: 10px 15px;
+                font-size: 16px; /* iOS Safari でズームを防ぐため16px以上 */
+                border-radius: 20px;
+            }
+
+            #askButton {
+                padding: 10px 16px;
+                font-size: 14px;
+                border-radius: 20px;
+                min-width: 70px;
+            }
         }
 
         #askButton:hover {
@@ -155,6 +224,17 @@
             font-weight: bold;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s;
+            z-index: 1000;
+        }
+
+        /* スマホ対応 - 管理リンク */
+        @media (max-width: 768px) {
+            .admin-link {
+                top: 10px;
+                right: 10px;
+                padding: 8px 15px;
+                font-size: 12px;
+            }
         }
 
         .admin-link:hover {
@@ -182,6 +262,30 @@
             display: flex;
             gap: 10px;
             justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* スマホ対応 - フィードバックボタン */
+        @media (max-width: 768px) {
+            .feedback-buttons {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .feedback-btn {
+                font-size: 12px;
+                padding: 8px 12px;
+            }
+
+            .confirmation-box {
+                padding: 12px;
+                font-size: 14px;
+            }
+
+            .confirmation-buttons button {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
         }
 
         .feedback-btn {
@@ -213,14 +317,14 @@
 
     <div class="container">
         <div class="header">
-            <h1>アメリカビザサポートデスク</h1>
+            <h1>GFアメリカビザサポートデスク</h1>
             <p>アメリカビザに関するご質問にお答えします</p>
         </div>
 
         <div class="chat-container">
             <div class="chat-messages" id="chatMessages">
                 <div class="message bot-message">
-                    <strong>アシスタント:</strong> こんにちは！アメリカビザに関するご質問をどうぞ。
+                    <strong>アシスタント:</strong> こんにちは！アメリカビザに関するご質問をどうぞ。ただし、どのビザがいいかといったコンサルテーションはできないので、予めご了承ください。
                 </div>
             </div>
 
