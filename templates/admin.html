@@ -245,6 +245,32 @@
             display: block;
         }
 
+        .file-help {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        input[type="file"] {
+            padding: 8px;
+            border: 2px dashed #667eea;
+            border-radius: 5px;
+            background: #f9f9ff;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        input[type="file"]:hover {
+            border-color: #5a6fd8;
+        }
+
+        input[type="file"]:focus {
+            outline: none;
+            border-color: #4a5fc1;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+        }
+
         .faq-number {
             background: #667eea;
             color: white;
@@ -337,11 +363,9 @@
                 <h2>FAQ自動生成</h2>
                 <form action="/admin/auto_generate" method="post" enctype="multipart/form-data">
                     <div class="form-group">
-                        <label for="source_file">ソースファイル:</label>
-                        <select id="source_file" name="source_file" required>
-                            <option value="">ファイルを選択してください</option>
-                            <option value="第2章.pdf">第2章.pdf</option>
-                        </select>
+                        <label for="source_file">ソースファイル (PDF):</label>
+                        <input type="file" id="source_file" name="source_file" accept=".pdf" required>
+                        <small class="file-help">PDF ファイルを選択してください（最大10MB）</small>
                     </div>
                     <div class="form-group">
                         <label for="num_questions">生成するQ&A数:</label>
