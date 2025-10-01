@@ -151,6 +151,16 @@ def edit_pending_qa(qa_id):
 
     return redirect(url_for('check_duplicates', qa_id=qa_id))
 
+@app.route('/admin/toggle_confirmation_request/<qa_id>', methods=['POST'])
+def toggle_confirmation_request(qa_id):
+    """承認待ちFAQの確認依頼フラグを切り替え"""
+    if faq_system.toggle_confirmation_request(qa_id):
+        print(f"[DEBUG] 確認依頼切り替え成功: {qa_id}")
+    else:
+        print(f"[DEBUG] 確認依頼切り替え失敗: {qa_id}")
+
+    return redirect(url_for('check_duplicates', qa_id=qa_id))
+
 @app.route('/admin/check_duplicates/<qa_id>')
 def check_duplicates(qa_id):
     """承認待ちQ&Aの重複チェック"""

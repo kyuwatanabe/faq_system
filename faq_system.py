@@ -46,7 +46,8 @@ class FAQSystem:
                         'keywords': row.get('keywords', '').strip(),
                         'category': row.get('category', '一般').strip(),
                         'created_at': row.get('created_at', ''),
-                        'user_question': row.get('user_question', '').strip()
+                        'user_question': row.get('user_question', '').strip(),
+                        'confirmation_request': row.get('confirmation_request', '0').strip()
                     })
             print(f"承認待ちQ&Aを{len(self.pending_qa)}件読み込みました")
         except FileNotFoundError:
@@ -60,14 +61,14 @@ class FAQSystem:
         try:
             with open(self.pending_file, 'w', encoding='utf-8-sig', newline='') as file:
                 if self.pending_qa:
-                    fieldnames = ['id', 'question', 'answer', 'keywords', 'category', 'created_at', 'user_question']
+                    fieldnames = ['id', 'question', 'answer', 'keywords', 'category', 'created_at', 'user_question', 'confirmation_request']
                     writer = csv.DictWriter(file, fieldnames=fieldnames)
                     writer.writeheader()
                     writer.writerows(self.pending_qa)
                 else:
                     # 空ファイルでもヘッダーは書く
                     writer = csv.writer(file)
-                    writer.writerow(['id', 'question', 'answer', 'keywords', 'category', 'created_at', 'user_question'])
+                    writer.writerow(['id', 'question', 'answer', 'keywords', 'category', 'created_at', 'user_question', 'confirmation_request'])
         except Exception as e:
             print(f"承認待ちQ&A保存エラー: {e}")
 
@@ -86,7 +87,8 @@ class FAQSystem:
             'keywords': keywords,
             'category': category,
             'created_at': timestamp,
-            'user_question': user_question
+            'user_question': user_question,
+            'confirmation_request': '0'
         })
 
         self.save_pending_qa()
@@ -139,6 +141,20 @@ class FAQSystem:
 
                 self.save_pending_qa()
                 print(f"[編集] 承認待ちQ&A「{qa_id}」を編集しました")
+                return True
+        return False
+
+    def toggle_confirmation_request(self, qa_id: str) -> bool:
+        """承認待ちQ&Aの確認依頼フラグを切り替え"""
+        for pending in self.pending_qa:
+            if pending['id'] == qa_id:
+                # 確認依頼フラグを切り替え（0/1のトグル）
+                current_value = pending.get('confirmation_request', '0')
+                pending['confirmation_request'] = '0' if current_value == '1' else '1'
+
+                self.save_pending_qa()
+                status = '依頼中' if pending['confirmation_request'] == '1' else '解除'
+                print(f"[確認依頼] 承認待ちFAQ「{qa_id}」の確認依頼を{status}にしました")
                 return True
         return False
 

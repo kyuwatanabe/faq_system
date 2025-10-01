@@ -244,6 +244,28 @@
             border-left: 4px solid #ffc107;
         }
 
+        .qa-item.confirmation-request {
+            border-left: 4px solid #ff6b6b;
+            background: #fff8f8;
+        }
+
+        .confirmation-badge {
+            display: inline-block;
+            background: #ff6b6b;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
         .qa-checkbox {
             float: left;
             margin-right: 15px;
@@ -448,7 +470,7 @@
 
             <form id="batch-form" method="POST" action="/admin/batch_reject">
                 {% for item in pending_items %}
-                <div class="qa-item pending" data-qa-id="{{ item.id }}">
+                <div class="qa-item {% if item.confirmation_request == '1' %}confirmation-request{% else %}pending{% endif %}" data-qa-id="{{ item.id }}">
                     <div class="qa-checkbox">
                         <input type="checkbox" name="qa_ids" value="{{ item.id }}" class="qa-select">
                     </div>
@@ -456,6 +478,9 @@
                     <div class="qa-content">
                         <div class="qa-header">
                             <span class="qa-id">ID: {{ item.id }}</span>
+                            {% if item.confirmation_request == '1' %}
+                            <span class="confirmation-badge">🔔 確認依頼中</span>
+                            {% endif %}
                             <span class="qa-date">{{ item.created_at }}</span>
                         </div>
 
