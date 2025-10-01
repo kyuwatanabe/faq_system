@@ -48,6 +48,11 @@ def admin():
     print(f"[DEBUG] 最初の3件: {[faq.get('question', '')[:30] for faq in faqs[:3]]}")
     return render_template('admin.html', faqs=faqs)
 
+@app.route('/admin/add_faq')
+def add_faq_page():
+    """FAQ追加画面"""
+    return render_template('add_faq.html')
+
 @app.route('/admin/add', methods=['POST'])
 def add_faq():
     """FAQ追加"""
@@ -59,7 +64,7 @@ def add_faq():
         faq_system.add_faq(question, answer, category=category)
         faq_system.save_faq_data()
 
-    return redirect(url_for('admin'))
+    return redirect(url_for('add_faq_page') + '?success=true')
 
 @app.route('/admin/edit/<int:index>', methods=['POST'])
 def edit_faq(index):

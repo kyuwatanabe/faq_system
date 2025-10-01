@@ -347,6 +347,7 @@
             <h1>FAQ管理画面</h1>
             <div>
                 <a href="/admin/review" class="back-link" style="margin-right: 10px;">承認待ちFAQ</a>
+                <a href="/admin/add_faq" class="back-link" style="margin-right: 10px;">FAQ追加</a>
                 <a href="/" class="back-link">ユーザー画面に戻る</a>
             </div>
         </div>
@@ -355,26 +356,6 @@
             <div class="stats">
                 <h3>{{ faqs|length }}</h3>
                 <p>登録済みFAQ件数</p>
-            </div>
-
-            <!-- FAQ追加フォーム -->
-            <div class="add-form">
-                <h2>新しいFAQを追加</h2>
-                <form action="/admin/add" method="post">
-                    <div class="form-group">
-                        <label for="question">質問:</label>
-                        <input type="text" id="question" name="question" required maxlength="200">
-                    </div>
-                    <div class="form-group">
-                        <label for="answer">回答:</label>
-                        <textarea id="answer" name="answer" required maxlength="1000"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="category">カテゴリ:</label>
-                        <input type="text" id="category" name="category" maxlength="50" placeholder="例: ビザ基本, 就労ビザ, 学生ビザ" value="一般">
-                    </div>
-                    <button type="submit" class="btn">FAQ追加</button>
-                </form>
             </div>
 
             <!-- FAQ自動生成 (PCのみ) -->
