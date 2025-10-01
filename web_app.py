@@ -113,6 +113,29 @@ def reject_qa(qa_id):
         print(f"[DEBUG] Q&A却下失敗: {qa_id}")
     return redirect(url_for('review_pending'))
 
+@app.route('/admin/batch_reject', methods=['POST'])
+def batch_reject_qa():
+    """複数のQ&Aをまとめて却下"""
+    qa_ids = request.form.getlist('qa_ids')
+
+    if not qa_ids:
+        print("[DEBUG] まとめて却下: 選択されたQ&Aがありません")
+        return redirect(url_for('review_pending'))
+
+    success_count = 0
+    fail_count = 0
+
+    for qa_id in qa_ids:
+        if faq_system.reject_pending_qa(qa_id):
+            success_count += 1
+            print(f"[DEBUG] Q&A却下成功: {qa_id}")
+        else:
+            fail_count += 1
+            print(f"[DEBUG] Q&A却下失敗: {qa_id}")
+
+    print(f"[DEBUG] まとめて却下完了 - 成功: {success_count}, 失敗: {fail_count}")
+    return redirect(url_for('review_pending'))
+
 @app.route('/admin/edit_pending/<qa_id>', methods=['POST'])
 def edit_pending_qa(qa_id):
     """承認待ちQ&Aを編集"""
