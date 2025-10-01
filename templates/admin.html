@@ -346,7 +346,7 @@
         <div class="header">
             <h1>FAQ管理画面</h1>
             <div>
-                <a href="/admin/review" class="back-link" style="margin-right: 10px;">承認待ちQ&A</a>
+                <a href="/admin/review" class="back-link" style="margin-right: 10px;">承認待ちFAQ</a>
                 <a href="/" class="back-link">ユーザー画面に戻る</a>
             </div>
         </div>
@@ -387,7 +387,7 @@
                         <small class="file-help">PDF ファイルを選択してください（最大10MB）</small>
                     </div>
                     <div class="form-group">
-                        <label for="num_questions">生成するQ&A数:</label>
+                        <label for="num_questions">生成するFAQ数:</label>
                         <input type="number" id="num_questions" name="num_questions" min="1" max="50" value="3" required>
                     </div>
                     <div class="form-group">
@@ -489,7 +489,7 @@
             .then(data => {
                 if (data.success) {
                     statusDiv.className = 'generate-status success';
-                    statusDiv.textContent = `成功！${data.generated_count}件のQ&Aを承認待ちキューに追加しました。`;
+                    statusDiv.textContent = `成功！${data.generated_count}件のFAQを承認待ちキューに追加しました。`;
                     // フォームをリセット
                     this.reset();
                 } else {

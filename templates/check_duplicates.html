@@ -212,7 +212,7 @@
 
         <div class="content">
             <div class="pending-item">
-                <h3>承認待ちQ&A (ID: {{ pending_item.id }})</h3>
+                <h3>承認待ちFAQ (ID: {{ pending_item.id }})</h3>
 
                 <div id="view-mode">
                     <div class="qa-question">{{ pending_item.question }}</div>
@@ -281,7 +281,7 @@
                 {% else %}
                     <div class="no-similar">
                         <h3>✅ 類似するFAQは見つかりませんでした</h3>
-                        <p>このQ&Aは新規追加しても重複の問題はありません。</p>
+                        <p>このFAQは新規追加しても重複の問題はありません。</p>
                     </div>
                 {% endif %}
             </div>
@@ -295,14 +295,14 @@
 
                 <form method="POST" action="/admin/approve/{{ pending_item.id }}" style="display: inline;">
                     <button type="submit" class="btn btn-approve"
-                            onclick="return confirm('{% if similar_faqs %}類似するFAQがありますが、{% endif %}このQ&AをFAQに追加しますか？')">
+                            onclick="return confirm('{% if similar_faqs %}類似するFAQがありますが、{% endif %}このFAQをFAQに追加しますか？')">
                         ✅ 承認して追加
                     </button>
                 </form>
 
                 <form method="POST" action="/admin/reject/{{ pending_item.id }}" style="display: inline;">
                     <button type="submit" class="btn btn-reject"
-                            onclick="return confirm('このQ&Aを却下しますか？')">
+                            onclick="return confirm('このFAQを却下しますか？')">
                         ❌ 却下
                     </button>
                 </form>

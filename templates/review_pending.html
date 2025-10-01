@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>承認待ちQ&A - GFアメリカビザサポートデスク</title>
+    <title>承認待ちFAQ - GFアメリカビザサポートデスク</title>
     <style>
         * {
             margin: 0;
@@ -414,7 +414,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>承認待ちQ&A</h1>
+            <h1>承認待ちFAQ</h1>
             <div class="header-links">
                 <a href="/admin" class="back-link">管理画面に戻る</a>
                 <a href="/" class="back-link">ユーザー画面に戻る</a>
@@ -494,9 +494,9 @@
             </form>
             {% else %}
                 <div class="empty-message">
-                    <p>現在、承認待ちのQ&Aはありません。</p>
+                    <p>現在、承認待ちのFAQはありません。</p>
                     <p style="margin-top: 10px; font-size: 14px; color: #888;">
-                        ユーザーからの不満足フィードバックやPDFからの自動生成があると、Q&Aがここに表示されます。
+                        ユーザーからの不満足フィードバックやPDFからの自動生成があると、FAQがここに表示されます。
                     </p>
                 </div>
             {% endif %}
@@ -566,18 +566,18 @@
             const count = checkedBoxes.length;
 
             if (count === 0) {
-                alert('却下するQ&Aを選択してください');
+                alert('却下するFAQを選択してください');
                 return;
             }
 
-            if (confirm(`選択した${count}件のQ&Aをまとめて却下しますか？`)) {
+            if (confirm(`選択した${count}件のFAQをまとめて却下しますか？`)) {
                 document.getElementById('batch-form').submit();
             }
         }
 
         // 個別却下
         function rejectSingle(qaId) {
-            if (confirm('このQ&Aを却下しますか?')) {
+            if (confirm('このFAQを却下しますか?')) {
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = '/admin/reject/' + qaId;
