@@ -90,6 +90,31 @@ def delete_faq(index):
     faq_system.save_faq_data()
     return redirect(url_for('admin'))
 
+@app.route('/admin/batch_delete', methods=['POST'])
+def batch_delete_faq():
+    """複数のFAQをまとめて削除"""
+    faq_indices = request.form.getlist('faq_indices')
+
+    if not faq_indices:
+        print("[DEBUG] まとめて削除: 選択されたFAQがありません")
+        return redirect(url_for('admin'))
+
+    # インデックスを降順にソートして削除（大きい方から削除しないとインデックスがずれる）
+    indices = sorted([int(idx) for idx in faq_indices], reverse=True)
+
+    success_count = 0
+    for idx in indices:
+        try:
+            faq_system.delete_faq(idx)
+            success_count += 1
+            print(f"[DEBUG] FAQ削除成功: インデックス {idx}")
+        except Exception as e:
+            print(f"[DEBUG] FAQ削除失敗: インデックス {idx}, エラー: {e}")
+
+    faq_system.save_faq_data()
+    print(f"[DEBUG] まとめて削除完了 - 成功: {success_count}件")
+    return redirect(url_for('admin'))
+
 @app.route('/interactive_improvement')
 def interactive_improvement():
     """対話的改善画面"""
