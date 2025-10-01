@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ自動生成 - GFアメリカビザサポートデスク</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #007c39 0%, #45b134 100%);
+            color: white;
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 20px 15px;
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+        }
+
+        .back-link {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            transition: background 0.3s;
+        }
+
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px;
+            }
+        }
+
+        .auto-generate-section {
+            background: #f0f9f5;
+            padding: 30px;
+            border-radius: 10px;
+            border: 2px solid #007c39;
+        }
+
+        .auto-generate-section h2 {
+            color: #007c39;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .info-box {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            border-left: 4px solid #007c39;
+        }
+
+        .info-box h3 {
+            color: #007c39;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .info-box ul {
+            margin-left: 20px;
+            color: #555;
+            line-height: 1.8;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .form-group input[type="file"],
+        .form-group input[type="number"],
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed #007c39;
+            border-radius: 5px;
+            font-size: 14px;
+            background: #f9f9ff;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input[type="number"],
+        .form-group input[type="text"] {
+            border: 1px solid #ddd;
+            border-style: solid;
+            background: white;
+            cursor: text;
+        }
+
+        .form-group input:hover {
+            border-color: #5a6fd8;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #007c39;
+            box-shadow: 0 0 5px rgba(0, 124, 57, 0.3);
+        }
+
+        .file-help {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #007c39 0%, #45b134 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 124, 57, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .btn {
+                width: 100%;
+            }
+        }
+
+        .generate-status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .generate-status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .generate-status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        .generate-status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>FAQ自動生成</h1>
+            <a href="/admin" class="back-link">管理画面に戻る</a>
+        </div>
+
+        <div class="content">
+            <div class="info-box">
+                <h3>📄 使い方</h3>
+                <ul>
+                    <li>PDFファイルから自動的にFAQを生成します</li>
+                    <li>生成されたFAQは承認待ちキューに追加されます</li>
+                    <li>承認画面で内容を確認してからFAQに追加できます</li>
+                </ul>
+            </div>
+
+            <div class="auto-generate-section">
+                <h2>PDF から FAQ を自動生成</h2>
+                <form action="/admin/auto_generate" method="post" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="source_file">ソースファイル (PDF): <span style="color: red;">*</span></label>
+                        <input type="file" id="source_file" name="source_file" accept=".pdf" required>
+                        <small class="file-help">PDF ファイルを選択してください（最大10MB）</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="num_questions">生成するFAQ数: <span style="color: red;">*</span></label>
+                        <input type="number" id="num_questions" name="num_questions" min="1" max="50" value="3" required>
+                        <small class="file-help">1〜50の範囲で指定してください</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="category">カテゴリ:</label>
+                        <input type="text" id="category" name="category" value="AI生成" maxlength="50">
+                        <small class="file-help">生成されたFAQに付与するカテゴリ</small>
+                    </div>
+
+                    <button type="submit" class="btn" id="generateBtn">FAQ自動生成</button>
+                    <div id="generateStatus" class="generate-status"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // FAQ自動生成機能
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const generateBtn = document.getElementById('generateBtn');
+            const statusDiv = document.getElementById('generateStatus');
+
+            // ファイルが選択されているか確認
+            const fileInput = document.getElementById('source_file');
+            if (!fileInput.files.length) {
+                statusDiv.className = 'generate-status error';
+                statusDiv.textContent = 'PDFファイルを選択してください';
+                return;
+            }
+
+            // ボタンを無効化してローディング表示
+            generateBtn.disabled = true;
+            generateBtn.textContent = '生成中...';
+            statusDiv.className = 'generate-status loading';
+            statusDiv.textContent = 'FAQ生成中です。しばらくお待ちください...';
+
+            fetch('/admin/auto_generate', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    statusDiv.className = 'generate-status success';
+                    statusDiv.textContent = `成功！${data.generated_count}件のFAQを承認待ちキューに追加しました。`;
+                    // フォームをリセット
+                    this.reset();
+                } else {
+                    statusDiv.className = 'generate-status error';
+                    statusDiv.textContent = `エラー: ${data.message}`;
+                }
+            })
+            .catch(error => {
+                statusDiv.className = 'generate-status error';
+                statusDiv.textContent = `エラー: ${error.message}`;
+            })
+            .finally(() => {
+                // ボタンを再有効化
+                generateBtn.disabled = false;
+                generateBtn.textContent = 'FAQ自動生成';
+            });
+        });
+    </script>
+</body>
+</html>

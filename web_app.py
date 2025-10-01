@@ -53,6 +53,11 @@ def add_faq_page():
     """FAQ追加画面"""
     return render_template('add_faq.html')
 
+@app.route('/admin/auto_generate_faq')
+def auto_generate_faq_page():
+    """FAQ自動生成画面"""
+    return render_template('auto_generate_faq.html')
+
 @app.route('/admin/add', methods=['POST'])
 def add_faq():
     """FAQ追加"""

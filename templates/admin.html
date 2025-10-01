@@ -348,6 +348,7 @@
             <div>
                 <a href="/admin/review" class="back-link" style="margin-right: 10px;">承認待ちFAQ</a>
                 <a href="/admin/add_faq" class="back-link" style="margin-right: 10px;">FAQ追加</a>
+                <a href="/admin/auto_generate_faq" class="back-link" style="margin-right: 10px;">FAQ自動生成</a>
                 <a href="/" class="back-link">ユーザー画面に戻る</a>
             </div>
         </div>
@@ -356,28 +357,6 @@
             <div class="stats">
                 <h3>{{ faqs|length }}</h3>
                 <p>登録済みFAQ件数</p>
-            </div>
-
-            <!-- FAQ自動生成 (PCのみ) -->
-            <div class="auto-generate-section desktop-only">
-                <h2>FAQ自動生成</h2>
-                <form action="/admin/auto_generate" method="post" enctype="multipart/form-data">
-                    <div class="form-group">
-                        <label for="source_file">ソースファイル (PDF):</label>
-                        <input type="file" id="source_file" name="source_file" accept=".pdf" required>
-                        <small class="file-help">PDF ファイルを選択してください（最大10MB）</small>
-                    </div>
-                    <div class="form-group">
-                        <label for="num_questions">生成するFAQ数:</label>
-                        <input type="number" id="num_questions" name="num_questions" min="1" max="50" value="3" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="category">カテゴリ:</label>
-                        <input type="text" id="category" name="category" value="AI生成" maxlength="50">
-                    </div>
-                    <button type="submit" class="btn" id="generateBtn">FAQ自動生成</button>
-                    <div id="generateStatus" class="generate-status"></div>
-                </form>
             </div>
 
             <!-- FAQ一覧 -->
@@ -436,58 +415,6 @@
                 editForm.style.display = 'none';
             }
         }
-
-        // フォーム送信時の確認
-        document.querySelector('.add-form form').addEventListener('submit', function(e) {
-            const question = document.getElementById('question').value.trim();
-            const answer = document.getElementById('answer').value.trim();
-
-            if (!question || !answer) {
-                e.preventDefault();
-                alert('質問と回答の両方を入力してください');
-            }
-        });
-
-        // FAQ自動生成機能
-        document.querySelector('.auto-generate-section form').addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const formData = new FormData(this);
-            const generateBtn = document.getElementById('generateBtn');
-            const statusDiv = document.getElementById('generateStatus');
-
-            // ボタンを無効化してローディング表示
-            generateBtn.disabled = true;
-            generateBtn.textContent = '生成中...';
-            statusDiv.className = 'generate-status loading';
-            statusDiv.textContent = 'FAQ生成中です。しばらくお待ちください...';
-
-            fetch('/admin/auto_generate', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    statusDiv.className = 'generate-status success';
-                    statusDiv.textContent = `成功！${data.generated_count}件のFAQを承認待ちキューに追加しました。`;
-                    // フォームをリセット
-                    this.reset();
-                } else {
-                    statusDiv.className = 'generate-status error';
-                    statusDiv.textContent = `エラー: ${data.message}`;
-                }
-            })
-            .catch(error => {
-                statusDiv.className = 'generate-status error';
-                statusDiv.textContent = `エラー: ${error.message}`;
-            })
-            .finally(() => {
-                // ボタンを再有効化
-                generateBtn.disabled = false;
-                generateBtn.textContent = 'FAQ自動生成';
-            });
-        });
     </script>
 </body>
 </html>
