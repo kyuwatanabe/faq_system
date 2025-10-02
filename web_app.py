@@ -41,12 +41,23 @@ def search():
 @app.route('/admin')
 def admin():
     """管理画面"""
-    # 最新データを再読み込み
-    faq_system.load_faq_data('faq_data-1.csv')
-    faqs = faq_system.faq_data
-    print(f"[DEBUG] 管理画面: FAQデータ件数 = {len(faqs)}")
-    print(f"[DEBUG] 最初の3件: {[faq.get('question', '')[:30] for faq in faqs[:3]]}")
-    return render_template('admin.html', faqs=faqs)
+    try:
+        # 最新データを再読み込み
+        faq_system.load_faq_data('faq_data-1.csv')
+        faqs = faq_system.faq_data
+        print(f"[DEBUG] 管理画面: FAQデータ件数 = {len(faqs)}")
+        print(f"[DEBUG] 最初の3件: {[faq.get('question', '')[:30] for faq in faqs[:3]]}")
+        response = make_response(render_template('admin.html', faqs=faqs))
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"[ERROR] 管理画面エラー: {e}")
+        print(error_details)
+        return f"<h1>エラー</h1><pre>{error_details}</pre>", 500
 
 @app.route('/admin/add_faq')
 def add_faq_page():
@@ -93,25 +104,42 @@ def delete_faq(index):
 @app.route('/admin/batch_delete', methods=['POST'])
 def batch_delete_faq():
     """複数のFAQをまとめて削除"""
+    print(f"[DEBUG] 受信したフォームデータ全体: {dict(request.form)}")
+    print(f"[DEBUG] request.form.getlist('faq_indices'): {request.form.getlist('faq_indices')}")
+    print(f"[DEBUG] request.form.keys(): {list(request.form.keys())}")
+
     faq_indices = request.form.getlist('faq_indices')
 
     if not faq_indices:
         print("[DEBUG] まとめて削除: 選択されたFAQがありません")
         return redirect(url_for('admin'))
 
+    # 最新データを再読み込み
+    faq_system.load_faq_data('faq_data-1.csv')
+
     # インデックスを降順にソートして削除（大きい方から削除しないとインデックスがずれる）
     indices = sorted([int(idx) for idx in faq_indices], reverse=True)
+
+    print(f"[DEBUG] まとめて削除開始 - 対象インデックス: {indices}")
+    print(f"[DEBUG] 削除前のFAQ件数: {len(faq_system.faq_data)}")
 
     success_count = 0
     for idx in indices:
         try:
-            faq_system.delete_faq(idx)
-            success_count += 1
-            print(f"[DEBUG] FAQ削除成功: インデックス {idx}")
+            if 0 <= idx < len(faq_system.faq_data):
+                deleted_question = faq_system.faq_data[idx].get('question', '')[:30]
+                faq_system.delete_faq(idx)
+                success_count += 1
+                print(f"[DEBUG] FAQ削除成功: インデックス {idx} - {deleted_question}")
+            else:
+                print(f"[DEBUG] FAQ削除スキップ: インデックス {idx} は範囲外")
         except Exception as e:
             print(f"[DEBUG] FAQ削除失敗: インデックス {idx}, エラー: {e}")
 
     faq_system.save_faq_data()
+    # 削除後に最新データを再読み込み
+    faq_system.load_faq_data('faq_data-1.csv')
+    print(f"[DEBUG] 削除後のFAQ件数: {len(faq_system.faq_data)}")
     print(f"[DEBUG] まとめて削除完了 - 成功: {success_count}件")
     return redirect(url_for('admin'))
 
