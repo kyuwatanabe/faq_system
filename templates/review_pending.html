@@ -266,6 +266,19 @@
             50% { opacity: 0.7; }
         }
 
+        .confirmation-comment {
+            margin-top: 10px;
+            padding: 10px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .confirmation-comment strong {
+            color: #856404;
+        }
+
         .qa-checkbox {
             float: left;
             margin-right: 15px;
@@ -506,6 +519,13 @@
                             <span>キーワード: {{ item.keywords }}</span>
                             {% endif %}
                         </div>
+
+                        {% if item.confirmation_request == '1' and item.comment %}
+                        <div class="confirmation-comment">
+                            <strong>📝 確認依頼コメント:</strong><br>
+                            <span style="white-space: pre-wrap;">{{ item.comment }}</span>
+                        </div>
+                        {% endif %}
 
                         <div class="action-buttons">
                             <a href="/admin/check_duplicates/{{ item.id }}" class="btn btn-check">

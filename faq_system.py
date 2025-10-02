@@ -47,7 +47,8 @@ class FAQSystem:
                         'category': row.get('category', '一般').strip(),
                         'created_at': row.get('created_at', ''),
                         'user_question': row.get('user_question', '').strip(),
-                        'confirmation_request': row.get('confirmation_request', '0').strip()
+                        'confirmation_request': row.get('confirmation_request', '0').strip(),
+                        'comment': row.get('comment', '').strip()
                     })
             print(f"承認待ちQ&Aを{len(self.pending_qa)}件読み込みました")
         except FileNotFoundError:
@@ -61,7 +62,7 @@ class FAQSystem:
         try:
             with open(self.pending_file, 'w', encoding='utf-8-sig', newline='') as file:
                 if self.pending_qa:
-                    fieldnames = ['id', 'question', 'answer', 'keywords', 'category', 'created_at', 'user_question', 'confirmation_request']
+                    fieldnames = ['id', 'question', 'answer', 'keywords', 'category', 'created_at', 'user_question', 'confirmation_request', 'comment']
                     writer = csv.DictWriter(file, fieldnames=fieldnames)
                     writer.writeheader()
                     writer.writerows(self.pending_qa)
@@ -144,13 +145,19 @@ class FAQSystem:
                 return True
         return False
 
-    def toggle_confirmation_request(self, qa_id: str) -> bool:
+    def toggle_confirmation_request(self, qa_id: str, comment: str = '') -> bool:
         """承認待ちQ&Aの確認依頼フラグを切り替え"""
         for pending in self.pending_qa:
             if pending['id'] == qa_id:
                 # 確認依頼フラグを切り替え（0/1のトグル）
                 current_value = pending.get('confirmation_request', '0')
                 pending['confirmation_request'] = '0' if current_value == '1' else '1'
+
+                # 確認依頼中の場合はコメントを保存、解除の場合はコメントをクリア
+                if pending['confirmation_request'] == '1':
+                    pending['comment'] = comment
+                else:
+                    pending['comment'] = ''
 
                 self.save_pending_qa()
                 status = '依頼中' if pending['confirmation_request'] == '1' else '解除'
