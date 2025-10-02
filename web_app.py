@@ -38,6 +38,11 @@ def search():
             'matched_question': None
         })
 
+@app.route('/admin/backup')
+def backup_page():
+    """バックアップ管理ページ"""
+    return render_template('backup.html')
+
 @app.route('/admin')
 def admin():
     """管理画面"""
@@ -101,36 +106,40 @@ def delete_faq(index):
     faq_system.save_faq_data()
     return redirect(url_for('admin'))
 
-@app.route('/admin/export', methods=['GET'])
-def export_faq():
-    """FAQデータをCSVとしてエクスポート"""
+@app.route('/admin/export_all', methods=['GET'])
+def export_all():
+    """全データ（FAQ + 承認待ち）をZIPでエクスポート"""
     import io
+    import zipfile
     from datetime import datetime
+    import shutil
+    import os
 
-    # 最新データを再読み込み
-    faq_system.load_faq_data('faq_data-1.csv')
-
-    # CSVデータを作成
-    output = io.StringIO()
-    import csv
-    writer = csv.DictWriter(output, fieldnames=['question', 'answer', 'category', 'keywords'])
-    writer.writeheader()
-    for faq in faq_system.faq_data:
-        writer.writerow({
-            'question': faq.get('question', ''),
-            'answer': faq.get('answer', ''),
-            'category': faq.get('category', '一般'),
-            'keywords': faq.get('keywords', '')
-        })
-
-    # レスポンスを作成（BOM付きUTF-8）
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    csv_content = '\ufeff' + output.getvalue()  # BOMを先頭に追加
-    response = make_response(csv_content.encode('utf-8'))
-    response.headers['Content-Type'] = 'text/csv; charset=utf-8'
-    response.headers['Content-Disposition'] = f'attachment; filename=faq_backup_{timestamp}.csv'
 
-    print(f"[DEBUG] FAQエクスポート完了: {len(faq_system.faq_data)}件")
+    # 一時的なメモリ上のZIPファイルを作成
+    zip_buffer = io.BytesIO()
+
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        # FAQ データを追加
+        if os.path.exists('faq_data-1.csv'):
+            zip_file.write('faq_data-1.csv', 'faq_data-1.csv')
+
+        # 承認待ちデータを追加
+        if os.path.exists('pending_qa.csv'):
+            zip_file.write('pending_qa.csv', 'pending_qa.csv')
+
+        # 不満足データを追加（あれば）
+        if os.path.exists('unsatisfied_qa.csv'):
+            zip_file.write('unsatisfied_qa.csv', 'unsatisfied_qa.csv')
+
+    zip_buffer.seek(0)
+
+    response = make_response(zip_buffer.read())
+    response.headers['Content-Type'] = 'application/zip'
+    response.headers['Content-Disposition'] = f'attachment; filename=faq_system_backup_{timestamp}.zip'
+
+    print(f"[DEBUG] 統合バックアップ完了: {timestamp}")
     return response
 
 @app.route('/admin/export_pending', methods=['GET'])
@@ -169,62 +178,73 @@ def export_pending_faq():
     print(f"[DEBUG] 承認待ちFAQエクスポート完了: {len(faq_system.pending_qa)}件")
     return response
 
-@app.route('/admin/import', methods=['POST'])
-def import_faq():
-    """FAQデータをCSVからインポート"""
-    import csv
+@app.route('/admin/import_all', methods=['POST'])
+def import_all():
+    """ZIPファイルから全データをインポート"""
+    import zipfile
+    import os
+    import shutil
 
     # ファイルアップロードの確認
-    if 'faq_file' not in request.files:
-        return redirect(url_for('admin') + '?error=no_file')
+    if 'backup_file' not in request.files:
+        return redirect(url_for('backup_page') + '?error=no_file')
 
-    file = request.files['faq_file']
+    file = request.files['backup_file']
     if file.filename == '':
-        return redirect(url_for('admin') + '?error=no_file')
+        return redirect(url_for('backup_page') + '?error=no_file')
 
-    if not file.filename.lower().endswith('.csv'):
-        return redirect(url_for('admin') + '?error=invalid_file')
-
-    # インポートモード（上書き or 追加）
-    import_mode = request.form.get('import_mode', 'append')
+    if not file.filename.lower().endswith('.zip'):
+        return redirect(url_for('backup_page') + '?error=invalid_file')
 
     try:
-        # CSVファイルを読み込み
-        file_content = file.read().decode('utf-8-sig')
-        csv_reader = csv.DictReader(io.StringIO(file_content))
+        # 一時ファイルに保存
+        import tempfile
+        temp_dir = tempfile.mkdtemp()
+        zip_path = os.path.join(temp_dir, 'backup.zip')
+        file.save(zip_path)
 
-        imported_faqs = []
-        for row in csv_reader:
-            if row.get('question') and row.get('answer'):
-                imported_faqs.append({
-                    'question': row.get('question', '').strip(),
-                    'answer': row.get('answer', '').strip(),
-                    'category': row.get('category', '一般').strip(),
-                    'keywords': row.get('keywords', '').strip()
-                })
+        # ZIPファイルを解凍
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(temp_dir)
 
-        if not imported_faqs:
-            return redirect(url_for('admin') + '?error=empty_file')
+        # 各CSVファイルを復元
+        restored_files = []
 
-        # 上書きモード
-        if import_mode == 'overwrite':
-            faq_system.faq_data = imported_faqs
-            print(f"[DEBUG] FAQインポート（上書き）: {len(imported_faqs)}件")
-        # 追加モード
-        else:
-            faq_system.faq_data.extend(imported_faqs)
-            print(f"[DEBUG] FAQインポート（追加）: {len(imported_faqs)}件")
+        # FAQデータ
+        faq_file = os.path.join(temp_dir, 'faq_data-1.csv')
+        if os.path.exists(faq_file):
+            shutil.copy(faq_file, 'faq_data-1.csv')
+            restored_files.append('FAQ')
 
-        # 保存
-        faq_system.save_faq_data()
+        # 承認待ちデータ
+        pending_file = os.path.join(temp_dir, 'pending_qa.csv')
+        if os.path.exists(pending_file):
+            shutil.copy(pending_file, 'pending_qa.csv')
+            restored_files.append('承認待ち')
 
-        return redirect(url_for('admin') + f'?success=import&count={len(imported_faqs)}&mode={import_mode}')
+        # 不満足データ
+        unsatisfied_file = os.path.join(temp_dir, 'unsatisfied_qa.csv')
+        if os.path.exists(unsatisfied_file):
+            shutil.copy(unsatisfied_file, 'unsatisfied_qa.csv')
+            restored_files.append('不満足')
+
+        # 一時ファイルを削除
+        shutil.rmtree(temp_dir)
+
+        # データを再読み込み
+        faq_system.load_faq_data('faq_data-1.csv')
+        faq_system.load_pending_qa()
+
+        restored_str = '、'.join(restored_files)
+        print(f"[DEBUG] バックアップ復元完了: {restored_str}")
+
+        return redirect(url_for('backup_page') + f'?success=restore&files={len(restored_files)}')
 
     except Exception as e:
-        print(f"[ERROR] FAQインポートエラー: {e}")
+        print(f"[ERROR] バックアップ復元エラー: {e}")
         import traceback
         traceback.print_exc()
-        return redirect(url_for('admin') + '?error=import_failed')
+        return redirect(url_for('backup_page') + '?error=restore_failed')
 
 @app.route('/admin/batch_delete', methods=['POST'])
 def batch_delete_faq():
