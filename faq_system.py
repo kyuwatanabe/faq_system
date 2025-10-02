@@ -145,19 +145,13 @@ class FAQSystem:
                 return True
         return False
 
-    def toggle_confirmation_request(self, qa_id: str, comment: str = '') -> bool:
+    def toggle_confirmation_request(self, qa_id: str) -> bool:
         """承認待ちQ&Aの確認依頼フラグを切り替え"""
         for pending in self.pending_qa:
             if pending['id'] == qa_id:
                 # 確認依頼フラグを切り替え（0/1のトグル）
                 current_value = pending.get('confirmation_request', '0')
                 pending['confirmation_request'] = '0' if current_value == '1' else '1'
-
-                # 確認依頼中の場合はコメントを保存、解除の場合はコメントをクリア
-                if pending['confirmation_request'] == '1':
-                    pending['comment'] = comment
-                else:
-                    pending['comment'] = ''
 
                 self.save_pending_qa()
                 status = '依頼中' if pending['confirmation_request'] == '1' else '解除'

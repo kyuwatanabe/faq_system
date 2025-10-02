@@ -300,22 +300,14 @@
                     </button>
                 </form>
 
-                <form method="POST" action="/admin/toggle_confirmation_request/{{ pending_item.id }}" id="confirmation-form" style="display: inline-block; vertical-align: top;">
+                <form method="POST" action="/admin/toggle_confirmation_request/{{ pending_item.id }}" style="display: inline;">
                     {% if pending_item.confirmation_request == '1' %}
                     <button type="submit" class="btn" style="background: #6c757d; color: white;">
                         🔓 確認依頼を解除
                     </button>
-                    <div style="margin-top: 10px; padding: 10px; background: #fff3cd; border-radius: 5px; max-width: 400px;">
-                        <strong>📝 確認依頼コメント:</strong><br>
-                        <span style="white-space: pre-wrap;">{{ pending_item.comment or 'コメントなし' }}</span>
-                    </div>
                     {% else %}
-                    <div style="margin-bottom: 10px; max-width: 400px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">📝 確認依頼コメント（任意）:</label>
-                        <textarea name="comment" rows="3" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" placeholder="専門担当者への確認事項を入力してください（例：この質問の正確な回答を確認したい）"></textarea>
-                    </div>
-                    <button type="submit" class="btn" style="background: #ffc107; color: #000;" onclick="return confirm('専門担当者に確認依頼を送りますか？')">
-                        🔔 管理者に確認依頼
+                    <button type="submit" class="btn" style="background: #ffc107; color: #000;">
+                        🔔 確認依頼
                     </button>
                     {% endif %}
                 </form>

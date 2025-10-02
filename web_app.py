@@ -306,10 +306,8 @@ def edit_pending_qa(qa_id):
 @app.route('/admin/toggle_confirmation_request/<qa_id>', methods=['POST'])
 def toggle_confirmation_request(qa_id):
     """承認待ちFAQの確認依頼フラグを切り替え"""
-    comment = request.form.get('comment', '').strip()
-
-    if faq_system.toggle_confirmation_request(qa_id, comment):
-        print(f"[DEBUG] 確認依頼切り替え成功: {qa_id}, コメント: {comment[:30] if comment else 'なし'}")
+    if faq_system.toggle_confirmation_request(qa_id):
+        print(f"[DEBUG] 確認依頼切り替え成功: {qa_id}")
     else:
         print(f"[DEBUG] 確認依頼切り替え失敗: {qa_id}")
 
