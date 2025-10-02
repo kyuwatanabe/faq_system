@@ -123,10 +123,11 @@ def export_faq():
             'keywords': faq.get('keywords', '')
         })
 
-    # レスポンスを作成
+    # レスポンスを作成（BOM付きUTF-8）
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    response = make_response(output.getvalue())
-    response.headers['Content-Type'] = 'text/csv; charset=utf-8-sig'
+    csv_content = '\ufeff' + output.getvalue()  # BOMを先頭に追加
+    response = make_response(csv_content.encode('utf-8'))
+    response.headers['Content-Type'] = 'text/csv; charset=utf-8'
     response.headers['Content-Disposition'] = f'attachment; filename=faq_backup_{timestamp}.csv'
 
     print(f"[DEBUG] FAQエクスポート完了: {len(faq_system.faq_data)}件")
