@@ -418,6 +418,77 @@
         .faq-header {
             padding-left: 40px;
         }
+
+        .backup-section {
+            background: #f0f9ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border: 2px solid #0ea5e9;
+        }
+
+        .backup-section h2 {
+            color: #0369a1;
+            margin-bottom: 20px;
+        }
+
+        .backup-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .backup-export, .backup-import {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .backup-export h3, .backup-import h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .backup-export p, .backup-import p {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .backup-import select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .backup-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .success-message, .error-message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
     </style>
 </head>
 <body>
@@ -433,9 +504,43 @@
         </div>
 
         <div class="content">
+            <!-- 成功/エラーメッセージ -->
+            <div id="status-message"></div>
+
             <div class="stats">
                 <h3>{{ faqs|length }}</h3>
                 <p>登録済みFAQ件数</p>
+            </div>
+
+            <!-- バックアップ/インポートセクション -->
+            <div class="backup-section">
+                <h2>📦 バックアップ & インポート</h2>
+                <div class="backup-actions">
+                    <div class="backup-export">
+                        <h3>💾 エクスポート（バックアップ）</h3>
+                        <p>現在のFAQデータをCSVファイルとしてダウンロードします</p>
+                        <a href="/admin/export" class="btn">📥 ダウンロード</a>
+                    </div>
+                    <div class="backup-import">
+                        <h3>📤 インポート（復元）</h3>
+                        <p>CSVファイルからFAQデータを読み込みます</p>
+                        <form id="import-form" action="/admin/import" method="post" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <label>CSVファイル:</label>
+                                <input type="file" name="faq_file" accept=".csv" required>
+                                <span class="file-help">※ UTF-8形式のCSVファイルを選択してください</span>
+                            </div>
+                            <div class="form-group">
+                                <label>インポートモード:</label>
+                                <select name="import_mode" required>
+                                    <option value="append">追加（既存のFAQに追加する）</option>
+                                    <option value="overwrite">上書き（既存のFAQを全て削除して置き換える）</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn" onclick="return confirmImport()">📤 インポート実行</button>
+                        </form>
+                    </div>
+                </div>
             </div>
 
             <!-- FAQ一覧 -->
@@ -595,6 +700,57 @@
 
         // 初期化
         updateFAQSelectionUI();
+
+        // インポート確認
+        function confirmImport() {
+            const fileInput = document.querySelector('input[name="faq_file"]');
+            const modeSelect = document.querySelector('select[name="import_mode"]');
+
+            if (!fileInput.files.length) {
+                alert('CSVファイルを選択してください');
+                return false;
+            }
+
+            const mode = modeSelect.value;
+            const modeText = mode === 'overwrite' ? '上書き（既存のFAQを全て削除）' : '追加（既存のFAQに追加）';
+
+            return confirm(`インポートモード: ${modeText}\n\nこの操作を実行してもよろしいですか？`);
+        }
+
+        // URLパラメータからメッセージを表示
+        function showStatusMessage() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const statusDiv = document.getElementById('status-message');
+
+            if (urlParams.has('success')) {
+                const count = urlParams.get('count');
+                const mode = urlParams.get('mode');
+                const modeText = mode === 'overwrite' ? '上書き' : '追加';
+                statusDiv.innerHTML = `<div class="success-message">✅ インポート成功: ${count}件のFAQを${modeText}しました</div>`;
+            } else if (urlParams.has('error')) {
+                const error = urlParams.get('error');
+                let errorText = 'エラーが発生しました';
+
+                if (error === 'no_file') errorText = 'ファイルが選択されていません';
+                else if (error === 'invalid_file') errorText = 'CSVファイルを選択してください';
+                else if (error === 'empty_file') errorText = 'ファイルにデータがありません';
+                else if (error === 'import_failed') errorText = 'インポートに失敗しました';
+
+                statusDiv.innerHTML = `<div class="error-message">❌ ${errorText}</div>`;
+            }
+
+            // メッセージを3秒後に自動で消す
+            if (statusDiv.innerHTML) {
+                setTimeout(() => {
+                    statusDiv.innerHTML = '';
+                    // URLからパラメータを削除
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }, 5000);
+            }
+        }
+
+        // ページ読み込み時に実行
+        showStatusMessage();
     </script>
 </body>
 </html>

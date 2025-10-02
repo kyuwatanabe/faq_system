@@ -101,6 +101,94 @@ def delete_faq(index):
     faq_system.save_faq_data()
     return redirect(url_for('admin'))
 
+@app.route('/admin/export', methods=['GET'])
+def export_faq():
+    """FAQデータをCSVとしてエクスポート"""
+    import io
+    from datetime import datetime
+
+    # 最新データを再読み込み
+    faq_system.load_faq_data('faq_data-1.csv')
+
+    # CSVデータを作成
+    output = io.StringIO()
+    import csv
+    writer = csv.DictWriter(output, fieldnames=['question', 'answer', 'category', 'keywords'])
+    writer.writeheader()
+    for faq in faq_system.faq_data:
+        writer.writerow({
+            'question': faq.get('question', ''),
+            'answer': faq.get('answer', ''),
+            'category': faq.get('category', '一般'),
+            'keywords': faq.get('keywords', '')
+        })
+
+    # レスポンスを作成
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    response = make_response(output.getvalue())
+    response.headers['Content-Type'] = 'text/csv; charset=utf-8-sig'
+    response.headers['Content-Disposition'] = f'attachment; filename=faq_backup_{timestamp}.csv'
+
+    print(f"[DEBUG] FAQエクスポート完了: {len(faq_system.faq_data)}件")
+    return response
+
+@app.route('/admin/import', methods=['POST'])
+def import_faq():
+    """FAQデータをCSVからインポート"""
+    import csv
+
+    # ファイルアップロードの確認
+    if 'faq_file' not in request.files:
+        return redirect(url_for('admin') + '?error=no_file')
+
+    file = request.files['faq_file']
+    if file.filename == '':
+        return redirect(url_for('admin') + '?error=no_file')
+
+    if not file.filename.lower().endswith('.csv'):
+        return redirect(url_for('admin') + '?error=invalid_file')
+
+    # インポートモード（上書き or 追加）
+    import_mode = request.form.get('import_mode', 'append')
+
+    try:
+        # CSVファイルを読み込み
+        file_content = file.read().decode('utf-8-sig')
+        csv_reader = csv.DictReader(io.StringIO(file_content))
+
+        imported_faqs = []
+        for row in csv_reader:
+            if row.get('question') and row.get('answer'):
+                imported_faqs.append({
+                    'question': row.get('question', '').strip(),
+                    'answer': row.get('answer', '').strip(),
+                    'category': row.get('category', '一般').strip(),
+                    'keywords': row.get('keywords', '').strip()
+                })
+
+        if not imported_faqs:
+            return redirect(url_for('admin') + '?error=empty_file')
+
+        # 上書きモード
+        if import_mode == 'overwrite':
+            faq_system.faq_data = imported_faqs
+            print(f"[DEBUG] FAQインポート（上書き）: {len(imported_faqs)}件")
+        # 追加モード
+        else:
+            faq_system.faq_data.extend(imported_faqs)
+            print(f"[DEBUG] FAQインポート（追加）: {len(imported_faqs)}件")
+
+        # 保存
+        faq_system.save_faq_data()
+
+        return redirect(url_for('admin') + f'?success=import&count={len(imported_faqs)}&mode={import_mode}')
+
+    except Exception as e:
+        print(f"[ERROR] FAQインポートエラー: {e}")
+        import traceback
+        traceback.print_exc()
+        return redirect(url_for('admin') + '?error=import_failed')
+
 @app.route('/admin/batch_delete', methods=['POST'])
 def batch_delete_faq():
     """複数のFAQをまとめて削除"""
