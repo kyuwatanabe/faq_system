@@ -133,6 +133,42 @@ def export_faq():
     print(f"[DEBUG] FAQエクスポート完了: {len(faq_system.faq_data)}件")
     return response
 
+@app.route('/admin/export_pending', methods=['GET'])
+def export_pending_faq():
+    """承認待ちFAQデータをCSVとしてエクスポート"""
+    import io
+    from datetime import datetime
+
+    # 最新データを再読み込み
+    faq_system.load_pending_qa()
+
+    # CSVデータを作成
+    output = io.StringIO()
+    import csv
+    writer = csv.DictWriter(output, fieldnames=['id', 'question', 'answer', 'keywords', 'category', 'created_at', 'user_question', 'confirmation_request'])
+    writer.writeheader()
+    for pending in faq_system.pending_qa:
+        writer.writerow({
+            'id': pending.get('id', ''),
+            'question': pending.get('question', ''),
+            'answer': pending.get('answer', ''),
+            'keywords': pending.get('keywords', ''),
+            'category': pending.get('category', '一般'),
+            'created_at': pending.get('created_at', ''),
+            'user_question': pending.get('user_question', ''),
+            'confirmation_request': pending.get('confirmation_request', '0')
+        })
+
+    # レスポンスを作成（BOM付きUTF-8）
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    csv_content = '\ufeff' + output.getvalue()  # BOMを先頭に追加
+    response = make_response(csv_content.encode('utf-8'))
+    response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+    response.headers['Content-Disposition'] = f'attachment; filename=pending_faq_backup_{timestamp}.csv'
+
+    print(f"[DEBUG] 承認待ちFAQエクスポート完了: {len(faq_system.pending_qa)}件")
+    return response
+
 @app.route('/admin/import', methods=['POST'])
 def import_faq():
     """FAQデータをCSVからインポート"""
