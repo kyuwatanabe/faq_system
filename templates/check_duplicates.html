@@ -293,33 +293,33 @@
                     </p>
                 {% endif %}
 
-                <form method="POST" action="/admin/approve/{{ pending_item.id }}" style="display: inline;">
-                    <button type="submit" class="btn btn-approve"
-                            onclick="return confirm('{% if similar_faqs %}類似するFAQがありますが、{% endif %}このFAQをFAQに追加しますか？')">
-                        ✅ 承認して追加
-                    </button>
-                </form>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <form method="POST" action="/admin/approve/{{ pending_item.id }}" style="margin: 0;">
+                        <button type="submit" class="btn btn-approve"
+                                onclick="return confirm('{% if similar_faqs %}類似するFAQがありますが、{% endif %}このFAQをFAQに追加しますか？')">
+                            追加
+                        </button>
+                    </form>
 
-                <form method="POST" action="/admin/toggle_confirmation_request/{{ pending_item.id }}" style="display: inline;">
-                    {% if pending_item.confirmation_request == '1' %}
-                    <button type="submit" class="btn" style="background: #6c757d; color: white;">
-                        🔓 確認依頼を解除
-                    </button>
-                    {% else %}
-                    <button type="submit" class="btn" style="background: #ffc107; color: #000;">
-                        🔔 確認依頼
-                    </button>
-                    {% endif %}
-                </form>
+                    <form method="POST" action="/admin/toggle_confirmation_request/{{ pending_item.id }}" style="margin: 0;">
+                        {% if pending_item.confirmation_request == '1' %}
+                        <button type="submit" class="btn" style="background: #6c757d; color: white;">
+                            確認依頼を解除
+                        </button>
+                        {% else %}
+                        <button type="submit" class="btn" style="background: #ffc107; color: #000;">
+                            確認依頼
+                        </button>
+                        {% endif %}
+                    </form>
 
-                <form method="POST" action="/admin/reject/{{ pending_item.id }}" style="display: inline;">
-                    <button type="submit" class="btn btn-reject"
-                            onclick="return confirm('このFAQを却下しますか？')">
-                        ❌ 却下
-                    </button>
-                </form>
-
-                <a href="/admin/review" class="btn btn-back">⬅️ 一覧に戻る</a>
+                    <form method="POST" action="/admin/reject/{{ pending_item.id }}" style="margin: 0;">
+                        <button type="submit" class="btn btn-reject"
+                                onclick="return confirm('このFAQを却下しますか？')">
+                            却下
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
