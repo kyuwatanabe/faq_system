@@ -754,15 +754,21 @@ class FAQSystem:
 
 【出力形式】
 以下のJSON配列形式でFAQを出力してください（最大{num_questions}個）：
+
+**重要**: JSONの値内では改行文字を使用せず、すべて1行で記述してください。
+長い回答も改行せずにスペースで区切ってください。
+
 [
   {{
     "question": "具体的な質問文",
-    "answer": "詳細で実用的な回答文",
+    "answer": "詳細で実用的な回答文（改行を使わず1行で記述）",
     "keywords": "関連キーワード1;関連キーワード2;関連キーワード3",
     "category": "{category}"
   }},
   ...
 ]
+
+JSON形式のみを出力し、説明文は不要です。
 """
 
             headers = {
@@ -813,7 +819,17 @@ class FAQSystem:
                 if json_str:
                     print(f"[DEBUG] 抽出したJSON（最初の300文字）: {json_str[:300]}")
                     try:
-                        faqs = json.loads(json_str)
+                        # JSON文字列のクリーニング（制御文字を除去）
+                        import unicodedata
+                        # 制御文字（改行、タブなど）を除去（JSON構造に必要な文字は保持）
+                        cleaned_json = ''.join(
+                            char if char in '{}[]":,\n\t ' or not unicodedata.category(char).startswith('C')
+                            else ' '
+                            for char in json_str
+                        )
+                        print(f"[DEBUG] クリーニング後のJSON（最初の300文字）: {cleaned_json[:300]}")
+
+                        faqs = json.loads(cleaned_json)
                         print(f"[DEBUG] {len(faqs)}件のFAQを生成しました")
                         # 生成したFAQを履歴に保存
                         self._save_to_generation_history(faqs)
