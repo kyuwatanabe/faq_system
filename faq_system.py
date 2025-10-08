@@ -795,12 +795,16 @@ class FAQSystem:
                 result = response.json()
                 content = result['content'][0]['text']
                 print(f"[DEBUG] Claude FAQ生成成功")
+                print(f"[DEBUG] Claude応答の最初の500文字: {content[:500]}")
 
                 # JSON部分を抽出
                 import re
                 json_match = re.search(r'\[.*\]', content, re.DOTALL)
                 if json_match:
                     json_str = json_match.group()
+                    # 改行やタブをエスケープ
+                    json_str = json_str.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+                    print(f"[DEBUG] 抽出したJSON（最初の300文字）: {json_str[:300]}")
                     try:
                         faqs = json.loads(json_str)
                         print(f"[DEBUG] {len(faqs)}件のFAQを生成しました")
@@ -809,9 +813,11 @@ class FAQSystem:
                         return faqs
                     except json.JSONDecodeError as e:
                         print(f"[DEBUG] JSONパースエラー: {e}")
+                        print(f"[DEBUG] パース失敗したJSON: {json_str[:1000]}")
                         return self._mock_faq_generation(num_questions, category)
                 else:
                     print(f"[DEBUG] Claude の回答からJSONを抽出できませんでした")
+                    print(f"[DEBUG] Claude応答全体: {content}")
                     return self._mock_faq_generation(num_questions, category)
             else:
                 print(f"[DEBUG] Claude API エラー - ステータス: {response.status_code}")
