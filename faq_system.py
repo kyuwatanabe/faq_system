@@ -14,6 +14,7 @@ class FAQSystem:
         self.pending_qa = []
         self.csv_file = csv_file
         self.pending_file = 'pending_qa.csv'
+        self.claude_api_key = None  # web_app.pyから設定される
         self.load_faq_data(csv_file)
         self.load_pending_qa()
 
@@ -694,10 +695,13 @@ class FAQSystem:
             import json
             import os
 
-            # Claude API設定
-            api_key = os.getenv('CLAUDE_API_KEY')
+            # Claude API設定（web_app.pyから渡されたキーを使用）
+            api_key = self.claude_api_key or os.getenv('CLAUDE_API_KEY')
+            print(f"[DEBUG] CLAUDE_API_KEY check: {'SET' if api_key else 'NOT SET'}")
+            if api_key:
+                print(f"[DEBUG] API key starts with: {api_key[:10]}...")
             if not api_key:
-                print("CLAUDE_API_KEY未設定。モック生成機能を使用します...")
+                print("[ERROR] CLAUDE_API_KEY未設定。モック生成機能を使用します...")
                 return self._mock_faq_generation(num_questions, category)
 
             # PDFからテキストを抽出

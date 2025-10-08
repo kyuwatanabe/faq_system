@@ -10,6 +10,7 @@ load_dotenv()
 
 app = Flask(__name__)
 faq_system = FAQSystem('faq_data-1.csv')
+faq_system.claude_api_key = os.getenv('CLAUDE_API_KEY')
 
 @app.route('/')
 def index():
