@@ -719,9 +719,23 @@ class FAQSystem:
 
             # 既存、承認待ち、履歴を統合
             all_existing_questions = existing_questions + pending_questions + history_questions
-            existing_context = "\n".join(all_existing_questions[:50]) if all_existing_questions else "なし"
+
+            # 重複を除去して番号付きリストを作成
+            unique_questions = []
+            seen = set()
+            for q in all_existing_questions:
+                if q not in seen:
+                    unique_questions.append(q)
+                    seen.add(q)
+
+            if unique_questions:
+                existing_context = "以下の質問は既に存在するため、これらと同一または非常に類似した質問は生成しないでください：\n\n"
+                existing_context += "\n".join([f"{i+1}. {q}" for i, q in enumerate(unique_questions[:100])])
+            else:
+                existing_context = "既存の質問はありません。"
 
             print(f"[DEBUG] 重複チェック対象 - 既存FAQ: {len(existing_questions)}件, 承認待ち: {len(pending_questions)}件, 履歴: {len(history_questions)}件")
+            print(f"[DEBUG] ユニークな既存質問: {len(unique_questions)}件")
 
             # プロンプト作成
             prompt = f"""
@@ -733,17 +747,16 @@ class FAQSystem:
 【ソースドキュメント】
 {pdf_content[:8000]}  # トークン制限を考慮
 
-【既存のFAQ質問と承認待ちQ&A（重複を避けるため）】
 {existing_context}
 
 【生成要件】
 1. **最重要**: PDFドキュメントに明示的に記載されている内容のみからFAQを生成すること
 2. PDFに記載されていない一般知識や推測による内容は絶対に含めないこと
-3. 実用的で具体的な質問を作成する
-4. 日本人がよく聞きそうな質問にする
-5. 回答は正確で詳細、かつ分かりやすい日本語で
-6. **重要**: 上記の既存質問と完全に同一または酷似する質問は絶対に避ける
-7. 既存質問と異なる角度・視点からの質問であれば、似たトピックでも問題ない
+3. **最重要**: 上記の既存質問リストを必ず確認し、それらと同一または酷似する質問は絶対に生成しないこと
+4. 既存質問と完全に異なるトピックや、異なる角度・視点からの質問を生成すること
+5. 実用的で具体的な質問を作成する
+6. 日本人がよく聞きそうな質問にする
+7. 回答は正確で詳細、かつ分かりやすい日本語で
 8. 専門用語には適切な説明を加える
 9. PDFに十分な情報がない場合は、生成する数を減らしても構わない
 
