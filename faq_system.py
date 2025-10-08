@@ -768,13 +768,15 @@ class FAQSystem:
 【出力形式】
 以下のJSON配列形式でFAQを出力してください（最大{num_questions}個）：
 
-**重要**: JSONの値内では改行文字を使用せず、すべて1行で記述してください。
-長い回答も改行せずにスペースで区切ってください。
+**重要なJSON記述ルール**:
+1. JSONの値内では改行文字を使用せず、すべて1行で記述してください
+2. 強調のための引用符（"入国"、"滞在"など）は使用せず、通常の文として記述してください
+3. 長い回答も改行せずにスペースで区切ってください
 
 [
   {{
     "question": "具体的な質問文",
-    "answer": "詳細で実用的な回答文（改行を使わず1行で記述）",
+    "answer": "詳細で実用的な回答文（改行や引用符を使わず1行で記述）",
     "keywords": "関連キーワード1;関連キーワード2;関連キーワード3",
     "category": "{category}"
   }},
@@ -832,17 +834,63 @@ JSON形式のみを出力し、説明文は不要です。
                 if json_str:
                     print(f"[DEBUG] 抽出したJSON（最初の300文字）: {json_str[:300]}")
                     try:
-                        # JSON文字列のクリーニング（制御文字を除去）
+                        # JSON文字列のクリーニング
                         import unicodedata
-                        # 制御文字（改行、タブなど）を除去（JSON構造に必要な文字は保持）
+
+                        # ステップ1: 制御文字を除去（JSON構造に必要な文字は保持）
                         cleaned_json = ''.join(
                             char if char in '{}[]":,\n\t ' or not unicodedata.category(char).startswith('C')
                             else ' '
                             for char in json_str
                         )
+
+                        # ステップ2: 最もシンプルなアプローチ - json.decoder.JSONDecodeError を処理
+                        # まず通常のJSONパースを試み、失敗したら値内のクォートを置換
                         print(f"[DEBUG] クリーニング後のJSON（最初の300文字）: {cleaned_json[:300]}")
 
-                        faqs = json.loads(cleaned_json)
+                        try:
+                            faqs = json.loads(cleaned_json)
+                        except json.JSONDecodeError as json_err:
+                            print(f"[DEBUG] 初回JSONパース失敗: {json_err}")
+                            print(f"[DEBUG] JSON値内のクォートを修正して再試行...")
+
+                            # 値内のダブルクォートを全てシングルクォートに置換
+                            # 簡易的な方法: JSON構造外のクォートは少ないと仮定
+                            # ": " の後から次の " までの間にある " を ' に置換
+                            import re
+
+                            def replace_inner_quotes(text):
+                                """JSON値内のダブルクォートをシングルクォートに置換"""
+                                result = []
+                                i = 0
+                                while i < len(text):
+                                    # ": " パターンを探す
+                                    if i < len(text) - 3 and text[i:i+3] == '": ':
+                                        result.append(text[i:i+3])
+                                        i += 3
+                                        # 次のダブルクォートまでの値部分を処理
+                                        if i < len(text) and text[i] == '"':
+                                            result.append('"')
+                                            i += 1
+                                            value_chars = []
+                                            while i < len(text):
+                                                if text[i] == '"' and (i + 1 >= len(text) or text[i+1] in ',\n}]'):
+                                                    # 値の終了
+                                                    result.append(''.join(value_chars).replace('"', "'"))
+                                                    result.append('"')
+                                                    i += 1
+                                                    break
+                                                else:
+                                                    value_chars.append(text[i])
+                                                    i += 1
+                                    else:
+                                        result.append(text[i])
+                                        i += 1
+                                return ''.join(result)
+
+                            cleaned_json = replace_inner_quotes(cleaned_json)
+                            print(f"[DEBUG] クォート修正後のJSON（最初の300文字）: {cleaned_json[:300]}")
+                            faqs = json.loads(cleaned_json)
                         print(f"[DEBUG] {len(faqs)}件のFAQを生成しました")
                         # 生成したFAQを履歴に保存
                         self._save_to_generation_history(faqs)
