@@ -799,11 +799,18 @@ class FAQSystem:
 
                 # JSON部分を抽出
                 import re
-                json_match = re.search(r'\[.*\]', content, re.DOTALL)
-                if json_match:
-                    json_str = json_match.group()
-                    # 改行やタブをエスケープ
-                    json_str = json_str.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+                # JSONブロックを探す（```json ... ``` の形式も考慮）
+                json_match = re.search(r'```json\s*(\[.*?\])\s*```', content, re.DOTALL)
+                if not json_match:
+                    json_match = re.search(r'\[.*\]', content, re.DOTALL)
+                    if json_match:
+                        json_str = json_match.group()
+                    else:
+                        json_str = None
+                else:
+                    json_str = json_match.group(1)
+
+                if json_str:
                     print(f"[DEBUG] 抽出したJSON（最初の300文字）: {json_str[:300]}")
                     try:
                         faqs = json.loads(json_str)
@@ -813,7 +820,7 @@ class FAQSystem:
                         return faqs
                     except json.JSONDecodeError as e:
                         print(f"[DEBUG] JSONパースエラー: {e}")
-                        print(f"[DEBUG] パース失敗したJSON: {json_str[:1000]}")
+                        print(f"[DEBUG] パース失敗したJSON（最初の500文字）: {json_str[:500]}")
                         return self._mock_faq_generation(num_questions, category)
                 else:
                     print(f"[DEBUG] Claude の回答からJSONを抽出できませんでした")
