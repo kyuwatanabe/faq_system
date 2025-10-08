@@ -2,6 +2,11 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, m
 from faq_system import FAQSystem, find_similar_faqs
 import json
 import datetime
+import os
+from dotenv import load_dotenv
+
+# .envファイルから環境変数を読み込む
+load_dotenv()
 
 app = Flask(__name__)
 faq_system = FAQSystem('faq_data-1.csv')

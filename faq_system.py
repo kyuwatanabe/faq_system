@@ -1,6 +1,11 @@
 import csv
 import difflib
 from typing import List, Dict, Tuple
+import os
+from dotenv import load_dotenv
+
+# .envファイルから環境変数を読み込む
+load_dotenv()
 
 
 class FAQSystem:
