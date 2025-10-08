@@ -367,6 +367,56 @@ class FAQSystem:
         except Exception as e:
             print(f"記録エラー: {e}")
 
+    def _load_generation_history(self) -> list:
+        """FAQ生成履歴を読み込む"""
+        history_file = 'faq_generation_history.csv'
+        history = []
+        try:
+            with open(history_file, 'r', encoding='utf-8-sig') as file:
+                csv_reader = csv.DictReader(file)
+                for row in csv_reader:
+                    history.append({
+                        'question': row.get('question', '').strip(),
+                        'answer': row.get('answer', '').strip(),
+                        'timestamp': row.get('timestamp', '').strip()
+                    })
+            print(f"[DEBUG] FAQ生成履歴を{len(history)}件読み込みました")
+        except FileNotFoundError:
+            print("[DEBUG] FAQ生成履歴ファイルが存在しません（初回生成）")
+        except Exception as e:
+            print(f"[DEBUG] FAQ生成履歴読み込みエラー: {e}")
+        return history
+
+    def _save_to_generation_history(self, faqs: list) -> None:
+        """生成したFAQを履歴に保存"""
+        import datetime
+        import os
+
+        history_file = 'faq_generation_history.csv'
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        try:
+            # ファイルが存在するかチェック
+            file_exists = os.path.exists(history_file)
+
+            with open(history_file, 'a', encoding='utf-8-sig', newline='') as file:
+                fieldnames = ['timestamp', 'question', 'answer']
+                writer = csv.DictWriter(file, fieldnames=fieldnames)
+
+                if not file_exists:
+                    writer.writeheader()
+
+                for faq in faqs:
+                    writer.writerow({
+                        'timestamp': timestamp,
+                        'question': faq.get('question', ''),
+                        'answer': faq.get('answer', '')
+                    })
+
+            print(f"[DEBUG] {len(faqs)}件のFAQを生成履歴に保存しました")
+        except Exception as e:
+            print(f"[DEBUG] FAQ生成履歴保存エラー: {e}")
+
     def extract_text_from_pdf(self, pdf_path: str) -> str:
         """PDFからテキストを抽出"""
         try:
@@ -658,11 +708,15 @@ class FAQSystem:
             self.load_pending_qa()
             pending_questions = [item['question'] for item in self.pending_qa if 'question' in item]
 
-            # 既存と承認待ちを統合
-            all_existing_questions = existing_questions + pending_questions
-            existing_context = "\n".join(all_existing_questions[:30]) if all_existing_questions else "なし"
+            # 過去に生成したFAQの履歴も読み込む
+            generation_history = self._load_generation_history()
+            history_questions = [item['question'] for item in generation_history if 'question' in item]
 
-            print(f"[DEBUG] 重複チェック対象 - 既存FAQ: {len(existing_questions)}件, 承認待ち: {len(pending_questions)}件")
+            # 既存、承認待ち、履歴を統合
+            all_existing_questions = existing_questions + pending_questions + history_questions
+            existing_context = "\n".join(all_existing_questions[:50]) if all_existing_questions else "なし"
+
+            print(f"[DEBUG] 重複チェック対象 - 既存FAQ: {len(existing_questions)}件, 承認待ち: {len(pending_questions)}件, 履歴: {len(history_questions)}件")
 
             # プロンプト作成
             prompt = f"""
@@ -678,17 +732,23 @@ class FAQSystem:
 {existing_context}
 
 【生成要件】
-1. 実用的で具体的な質問を作成する
-2. 日本人がよく聞きそうな質問にする
-3. 回答は正確で詳細、かつ分かりやすい日本語で
-4. **重要**: 上記の既存質問と類似または重複する内容は絶対に避ける
-5. 既存質問と意味的に重複する場合は、異なる角度・視点からの質問にする
-6. アメリカビザに関連する内容に限定する
-7. 専門用語には適切な説明を加える
-8. 新規性と独自性を重視する
+1. **最重要**: PDFドキュメントに明示的に記載されている内容のみからFAQを生成すること
+2. PDFに記載されていない一般知識や推測による内容は絶対に含めないこと
+3. 実用的で具体的な質問を作成する
+4. 日本人がよく聞きそうな質問にする
+5. 回答は正確で詳細、かつ分かりやすい日本語で
+6. **重要**: 上記の既存質問と完全に同一または酷似する質問は絶対に避ける
+7. 既存質問と異なる角度・視点からの質問であれば、似たトピックでも問題ない
+8. 専門用語には適切な説明を加える
+9. PDFに十分な情報がない場合は、生成する数を減らしても構わない
+
+【重要な注意事項】
+- PDFドキュメントに記載されている事実のみを使用してください
+- 一般的なビザ知識や外部情報を追加しないでください
+- 不明な点や記載がない内容については、FAQを生成しないでください
 
 【出力形式】
-以下のJSON配列形式で{num_questions}個のFAQを出力してください：
+以下のJSON配列形式でFAQを出力してください（最大{num_questions}個）：
 [
   {{
     "question": "具体的な質問文",
@@ -739,6 +799,8 @@ class FAQSystem:
                     try:
                         faqs = json.loads(json_str)
                         print(f"[DEBUG] {len(faqs)}件のFAQを生成しました")
+                        # 生成したFAQを履歴に保存
+                        self._save_to_generation_history(faqs)
                         return faqs
                     except json.JSONDecodeError as e:
                         print(f"[DEBUG] JSONパースエラー: {e}")
@@ -868,6 +930,9 @@ class FAQSystem:
             print(f"[DEBUG] 追加生成FAQ{len(mock_faqs)}: {additional_faq['question'][:30]}...")
 
         print(f"[DEBUG] 最終生成数: {len(mock_faqs)}")
+        # 生成したFAQを履歴に保存
+        if mock_faqs:
+            self._save_to_generation_history(mock_faqs)
         return mock_faqs
 
 
