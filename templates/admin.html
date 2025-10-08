@@ -546,32 +546,30 @@
                         <div class="faq-answer">{{ faq.answer }}</div>
                         <div class="faq-category">カテゴリ: <span class="category-badge">{{ faq.get('category', '一般') }}</span></div>
                     </div>
+
+                    <!-- 編集フォーム -->
+                    <div class="edit-form" id="edit-form-{{ loop.index0 }}">
+                        <h3>FAQ編集</h3>
+                        <form action="/admin/edit/{{ loop.index0 }}" method="post">
+                            <div class="form-group">
+                                <label>質問:</label>
+                                <input type="text" name="question" value="{{ faq.question }}" maxlength="200">
+                            </div>
+                            <div class="form-group">
+                                <label>回答:</label>
+                                <textarea name="answer" maxlength="1000">{{ faq.answer }}</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>カテゴリ:</label>
+                                <input type="text" name="category" value="{{ faq.get('category', '一般') }}" maxlength="50" placeholder="例: ビザ基本, 就労ビザ, 学生ビザ">
+                            </div>
+                            <button type="submit" class="btn">更新</button>
+                            <button type="button" class="btn" onclick="toggleEdit({{ loop.index0 }})">キャンセル</button>
+                        </form>
+                    </div>
                 </div>
                 {% endfor %}
                 </form>
-
-                <!-- 編集フォーム（全FAQ共通） -->
-                {% for faq in faqs %}
-                <div class="edit-form" id="edit-form-{{ loop.index0 }}">
-                    <h3>FAQ編集</h3>
-                    <form action="/admin/edit/{{ loop.index0 }}" method="post">
-                        <div class="form-group">
-                            <label>質問:</label>
-                            <input type="text" name="question" value="{{ faq.question }}" maxlength="200">
-                        </div>
-                        <div class="form-group">
-                            <label>回答:</label>
-                            <textarea name="answer" maxlength="1000">{{ faq.answer }}</textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>カテゴリ:</label>
-                            <input type="text" name="category" value="{{ faq.get('category', '一般') }}" maxlength="50" placeholder="例: ビザ基本, 就労ビザ, 学生ビザ">
-                        </div>
-                        <button type="submit" class="btn">更新</button>
-                        <button type="button" class="btn" onclick="toggleEdit({{ loop.index0 }})">キャンセル</button>
-                    </form>
-                </div>
-                {% endfor %}
             </div>
         </div>
     </div>
