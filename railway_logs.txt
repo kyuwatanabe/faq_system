@@ -1,0 +1,31 @@
+
+  Command `logs` not recognized.
+
+  🚂 Railway. Infrastructure, Instantly.
+
+  Usage
+
+    railway <command> [options]
+
+  Commands
+
+    run <cmd>         Run command using Railway environment
+    build             Generate env file for running Railway in production
+    status            View status of project
+    init              Get started with Railway
+    use               Select an environment to use
+    open              Open project in browser
+    new               Create a new project
+    list              Show all of your projects
+    login             Login to Railway
+    logout            Logout of Railway
+    whoami            Show the currently logged in user
+    env               Show Railway environment
+    up                Instantly deploy a cloud environment
+
+  Options
+
+    --help            Show the usage information
+    -v, --version     Show the version number
+    -f, --force       Overwrite existing project if it exists
+

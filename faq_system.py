@@ -933,10 +933,46 @@ JSON形式のみを出力し、説明文は不要です。
                             cleaned_json = replace_inner_quotes(cleaned_json)
                             print(f"[DEBUG] クォート修正後のJSON（最初の300文字）: {cleaned_json[:300]}")
                             faqs = json.loads(cleaned_json)
+
                         print(f"[DEBUG] {len(faqs)}件のFAQを生成しました")
-                        # 生成したFAQを履歴に保存
-                        self._save_to_generation_history(faqs)
-                        return faqs
+
+                        # 意味的重複チェック（生成されたFAQ同士の類似度チェック）
+                        print(f"[DEBUG] 意味的重複チェックを開始...")
+                        filtered_faqs = []
+                        similarity_threshold = 0.85  # 85%以上の類似度は重複とみなす
+
+                        for i, faq in enumerate(faqs):
+                            is_duplicate = False
+                            current_question = faq.get('question', '')
+
+                            # 既存のFAQおよび承認待ちFAQとの類似度チェック
+                            for existing_q in unique_questions:
+                                similarity = self.calculate_similarity(current_question, existing_q)
+                                if similarity >= similarity_threshold:
+                                    print(f"[DEBUG] 重複検出（既存と類似 {similarity:.2f}）: {current_question[:40]}... ≈ {existing_q[:40]}...")
+                                    is_duplicate = True
+                                    break
+
+                            # 今回生成したFAQ同士の類似度チェック
+                            if not is_duplicate:
+                                for already_added in filtered_faqs:
+                                    similarity = self.calculate_similarity(current_question, already_added.get('question', ''))
+                                    if similarity >= similarity_threshold:
+                                        print(f"[DEBUG] 重複検出（生成内で類似 {similarity:.2f}）: {current_question[:40]}... ≈ {already_added.get('question', '')[:40]}...")
+                                        is_duplicate = True
+                                        break
+
+                            if not is_duplicate:
+                                filtered_faqs.append(faq)
+                                print(f"[DEBUG] FAQ {i+1} を追加: {current_question[:50]}...")
+                            else:
+                                print(f"[DEBUG] FAQ {i+1} をスキップ（重複）: {current_question[:50]}...")
+
+                        print(f"[DEBUG] 意味的重複チェック完了: {len(faqs)}件 → {len(filtered_faqs)}件")
+
+                        # フィルタリング後のFAQを履歴に保存
+                        self._save_to_generation_history(filtered_faqs)
+                        return filtered_faqs
                     except json.JSONDecodeError as e:
                         print(f"[ERROR] JSONパースエラー: {e}")
                         print(f"[ERROR] パース失敗したJSON（最初の500文字）: {json_str[:500]}")

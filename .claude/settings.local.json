@@ -27,7 +27,17 @@
       "Bash(del /f nul)",
       "Bash(del /f temp_admin.html)",
       "Bash(del /f kill_port_5000.bat)",
-      "Bash(del /f test_*.py)"
+      "Bash(del /f test_*.py)",
+      "Bash(curl -s \"https://faqsystem-production.up.railway.app/generate_qa?category=AI生成&num=10&pdf=reference_docs%2F第2章.pdf\" -H \"Accept: application/json\")",
+      "Bash(railway logs:*)",
+      "Bash(npx railway logs:*)",
+      "WebFetch(domain:faqsystem-production.up.railway.app)",
+      "Bash(for i in {1..5})",
+      "Bash(curl -X POST \"https://faqsystem-production.up.railway.app/admin/auto_generate\" -H \"Content-Type: application/x-www-form-urlencoded\" -d \"pdf_file=reference_docs/第2章.pdf&num_questions=10&category=AI生成\")",
+      "Bash(npx railway:*)",
+      "Bash(curl -s \"https://faqsystem-production.up.railway.app/admin/review\" -o temp_review.html)",
+      "Bash(cat:*)",
+      "Bash(curl -s \"https://faqsystem-production.up.railway.app/admin/review\")"
     ],
     "deny": [],
     "ask": []

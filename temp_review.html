@@ -1,0 +1,1890 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>承認待ちFAQ - GFアメリカビザサポートデスク</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        /* スマホ対応 */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #007c39 0%, #45b134 100%);
+            color: white;
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .header-links {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* スマホ対応 - ヘッダー */
+        @media (max-width: 768px) {
+            .header {
+                padding: 20px 15px;
+                flex-direction: column;
+                align-items: flex-start;
+                text-align: center;
+                gap: 15px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+                width: 100%;
+                text-align: center;
+                margin-bottom: 10px;
+            }
+
+            .header-links {
+                width: 100%;
+                justify-content: center;
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+
+        .back-link {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            transition: background 0.3s;
+            margin-left: 10px;
+        }
+
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        /* スマホ対応 - コンテンツ */
+        @media (max-width: 768px) {
+            .content {
+                padding: 15px;
+            }
+
+            .qa-item {
+                padding: 15px;
+                margin-bottom: 10px;
+            }
+
+            .stats-bar {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 10px;
+        }
+
+        .stats-info {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-item h3 {
+            font-size: 32px;
+            color: #007c39;
+            margin-bottom: 5px;
+        }
+
+        .stat-item p {
+            color: #666;
+            font-size: 13px;
+        }
+
+        .batch-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .select-all-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            background: white;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+
+        .select-all-container input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .select-all-container label {
+            font-size: 14px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .btn-batch {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: none;
+        }
+
+        .btn-batch.active {
+            display: inline-block;
+        }
+
+        .btn-batch:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-batch-reject {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-batch-reject:hover {
+            background: #c82333;
+        }
+
+        .btn-batch-approve {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-batch-approve:hover {
+            background: #218838;
+        }
+
+        .empty-message {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+            font-size: 18px;
+        }
+
+        .qa-item {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: box-shadow 0.2s, border-color 0.2s;
+        }
+
+        .qa-item:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .qa-item.selected {
+            border-color: #007c39;
+            background: #f0f9f4;
+        }
+
+        .qa-item.pending {
+            border-left: 4px solid #ffc107;
+        }
+
+        .qa-item.confirmation-request {
+            border-left: 4px solid #ff6b6b;
+            background: #fff8f8;
+        }
+
+        .confirmation-badge {
+            display: inline-block;
+            background: #ff6b6b;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .qa-checkbox {
+            float: left;
+            margin-right: 15px;
+            margin-top: 5px;
+        }
+
+        .qa-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .qa-content {
+            overflow: hidden;
+        }
+
+        .qa-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .qa-id {
+            background: #007c39;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .qa-date {
+            color: #888;
+            font-size: 11px;
+        }
+
+        .original-question {
+            background: #fff3cd;
+            border-left: 3px solid #ffc107;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            font-size: 12px;
+        }
+
+        .original-question strong {
+            color: #856404;
+        }
+
+        .qa-question {
+            font-size: 15px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .qa-answer {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 12px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .qa-meta {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            color: #666;
+            flex-wrap: wrap;
+        }
+
+        .qa-meta span {
+            background: #e9ecef;
+            padding: 3px 8px;
+            border-radius: 3px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-block;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-check {
+            background: #007c39;
+            color: white;
+        }
+
+        .btn-check:hover {
+            background: #005a29;
+        }
+
+        .btn-reject {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-reject:hover {
+            background: #c82333;
+        }
+
+        .selected-count {
+            background: #007c39;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            display: none;
+        }
+
+        .selected-count.active {
+            display: inline-block;
+        }
+
+        @media (max-width: 768px) {
+            .qa-header {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                text-align: center;
+            }
+
+            .batch-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .btn-batch {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>承認待ちFAQ</h1>
+            <div class="header-links">
+                <a href="/admin/add_faq" class="back-link">FAQ追加</a>
+                <a href="/admin/auto_generate_faq" class="back-link">FAQ自動生成</a>
+                <a href="/admin" class="back-link">管理画面に戻る</a>
+                <a href="/" class="back-link">ユーザー画面に戻る</a>
+            </div>
+        </div>
+
+        <div class="content">
+            
+            <div class="stats-bar">
+                <div class="stats-info">
+                    <div class="stat-item">
+                        <h3>30</h3>
+                        <p>承認待ち</p>
+                    </div>
+                    <div class="stat-item">
+                        <h3 id="selected-count">0</h3>
+                        <p>選択中</p>
+                    </div>
+                </div>
+
+                <div class="batch-actions">
+                    <div class="select-all-container">
+                        <input type="checkbox" id="select-all">
+                        <label for="select-all">すべて選択</label>
+                    </div>
+                    <a href="/admin/export_pending" class="btn-batch" style="background: #28a745; text-decoration: none; display: inline-block;">
+                        💾 バックアップ
+                    </a>
+                    <button class="btn-batch btn-batch-reject" id="batch-reject" onclick="batchReject()">
+                        ❌ まとめて却下
+                    </button>
+                </div>
+            </div>
+
+            <form id="batch-form" method="POST" action="/admin/batch_reject">
+                
+                <div class="qa-item pending" data-qa-id="80822801">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="80822801" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: 80822801</span>
+                            
+                            <span class="qa-date">2025-10-09 07:58:15</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            ビザウェーバープログラムとはどのようなものですか?
+                        </div>
+
+                        <div class="qa-answer">
+                            ビザウェーバープログラムは、日本人を含む特定の国の国籍保有者が90日以内の観光や商用目的で渡米する際、ビザなしで入国できる相互的な特例措置です。ただし、テロ支援国家への渡航歴がある、あるいはオーバーステイの経験がある等の条件に当てはまる場合は対象外となります。渡米前にオンラインでESTAの渡航認証を受ける必要があります。
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: ビザウェーバープログラム</span>
+                            
+                            <span>キーワード: ビザウェーバー;ESTA;観光;商用;渡米;入国;テロ支援国家;オーバーステイ</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/80822801" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('80822801')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="191c6bff">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="191c6bff" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: 191c6bff</span>
+                            
+                            <span class="qa-date">2025-10-09 07:58:15</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            ビザウェーバープログラムでの渡航中に90日を超えて滞在する場合はどうなりますか?
+                        </div>
+
+                        <div class="qa-answer">
+                            ビザウェーバープログラムを利用してアメリカに滞在する場合、90日を超えて滞在する理由が発生しても、移民局での滞在許可の延長や滞在ステータスの変更はできません。ただし、米国市民の即時の親族である場合は、adjustment of statusの申請をすることができます。
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: ビザウェーバープログラム</span>
+                            
+                            <span>キーワード: ビザウェーバー;滞在期間;延長;ステータス変更;adjustment of status</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/191c6bff" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('191c6bff')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="fa313b76">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="fa313b76" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: fa313b76</span>
+                            
+                            <span class="qa-date">2025-10-09 07:58:15</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            オーバーステイした場合のペナルティはどのようなものがありますか?
+                        </div>
+
+                        <div class="qa-answer">
+                            オーバーステイが180日を超えると3年間、さらに1年以上になると10年間米国に入国できなくなります。また1年以上不法滞在した後に入国許可などなく再入国しようとした場合、永久に入国禁止になります。オーバーステイは重大な問題であり、避けるべきです。
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: オーバーステイ</span>
+                            
+                            <span>キーワード: オーバーステイ;ペナルティ;入国禁止;不法滞在</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/fa313b76" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('fa313b76')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="8ee2b5f7">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="8ee2b5f7" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: 8ee2b5f7</span>
+                            
+                            <span class="qa-date">2025-10-09 07:58:15</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            I-94とは何ですか?その役割は何ですか?
+                        </div>
+
+                        <div class="qa-answer">
+                            I-94は米国の入出国記録で、パスポートにスタンプが押され、滞在ステータスと滞在期限が記入されます。入国時に入国審査官によって付与され、滞在期限を示します。I-94が回収されずに出国した場合は記録上アメリカに滞在したままになり、不法滞在として記録が残る可能性があります。
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: I-94</span>
+                            
+                            <span>キーワード: I-94;入出国記録;滞在期限;出国;不法滞在</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/8ee2b5f7" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('8ee2b5f7')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="8e5563a8">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="8e5563a8" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: 8e5563a8</span>
+                            
+                            <span class="qa-date">2025-10-09 07:58:15</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            商用とは具体的にどのような活動を指しますか?就労とどのように異なりますか?
+                        </div>
+
+                        <div class="qa-answer">
+                            商用とは、取引先との会合、科学・教育・専門・ビジネス分野の会議への参加、財産の処理、契約交渉などの活動を指します。一方、実際に手を動かす作業や、現地のスタッフの行うべき作業を代替するような活動は就労とみなされる可能性が高くなります。商用と就労の判断は微妙な場合も多く、状況に応じて慎重に判断する必要があります。
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: 商用と就労</span>
+                            
+                            <span>キーワード: 商用;就労;取引;会議;契約;手作業;代替作業</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/8e5563a8" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('8e5563a8')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="ffcd1f40">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="ffcd1f40" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: ffcd1f40</span>
+                            
+                            <span class="qa-date">2025-10-09 07:58:15</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            Automatic Revalidationとは何ですか?
+                        </div>
+
+                        <div class="qa-answer">
+                            Automatic Revalidationは、非移民ビザが無効であっても、I-94が有効であれば再入国できる制度です。ただし、新しいビザを申請中、ビザが却下された、30日以上米国外に滞在した、テロ支援国家の国民である、などの条件に該当する場合は適用外となります。Automatic Revalidationを活用することで、ビザの更新なしでも滞在が継続できます。
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: Automatic Revalidation</span>
+                            
+                            <span>キーワード: Automatic Revalidation;再入国;I-94;ビザ無効</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/ffcd1f40" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('ffcd1f40')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="251411bc">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="251411bc" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: 251411bc</span>
+                            
+                            <span class="qa-date">2025-10-09 07:58:15</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            ビザの有効期限と滞在期限の違いは何ですか?
+                        </div>
+
+                        <div class="qa-answer">
+                            ビザの有効期限はそのビザで認められた目的でいつまでアメリカに&#39;入国&#39;できるかを示します。一方、滞在期限はいつまでアメリカに&#39;滞在&#39;できるかを示します。ビザの有効期限は在外公館の領事が決めますが、滞在期限は入国審査官が決定します。基本的にビザの有効期限が過ぎていても滞在許可が有効であれば、合法的に滞在し続けることができます。
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: ビザの有効期限と滞在期限</span>
+                            
+                            <span>キーワード: ビザ;有効期限;滞在期限;入国;滞在;領事;入国審査官</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/251411bc" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('251411bc')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="392d5c02">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="392d5c02" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: 392d5c02</span>
+                            
+                            <span class="qa-date">2025-10-09 07:58:15</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            パスポートの有効期間とビザの有効期間の関係はどのようになっていますか?
+                        </div>
+
+                        <div class="qa-answer">
+                            与えられる滞在期限はビザ種別によって定められる期間と、パスポートの有効期間のどちらか短い方までとなります。また、入国審査官の判断によって、本来許可される期間よりも短くなることもあります。パスポートの有効期間が十分であっても、入国審査官が短い期間しか滞在を許可しない場合もあるため、注意が必要です。
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: ビザの有効期限と滞在期限</span>
+                            
+                            <span>キーワード: ビザ;有効期限;パスポート;有効期間;入国審査官;滞在期間</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/392d5c02" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('392d5c02')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="07ab6e2e">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="07ab6e2e" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: 07ab6e2e</span>
+                            
+                            <span class="qa-date">2025-10-09 07:58:15</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            I-94が回収されずに出国した場合、どのような影響がありますか?
+                        </div>
+
+                        <div class="qa-answer">
+                            I-94が回収されずに出国した場合は、記録上アメリカに滞在したままになり、不法滞在として記録が残る可能性があります。このような場合は、出国の証拠(搭乗券、パスポートのスタンプ、給与明細など)をUSCISに提出して、I-94の修正を申請する必要があります。不法滞在の記録は将来の渡米に影響を及ぼすため、注意が必要です。
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: I-94</span>
+                            
+                            <span>キーワード: I-94;出国;不法滞在;修正;証拠</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/07ab6e2e" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('07ab6e2e')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="c8dec737">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="c8dec737" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: c8dec737</span>
+                            
+                            <span class="qa-date">2025-10-09 07:58:15</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            ビザウェーバープログラムの参加国はどこですか?
+                        </div>
+
+                        <div class="qa-answer">
+                            ビザウェーバープログラムの参加国は、2024年11月現在、42か国あります。主な国はアンドラ、オーストラリア、オーストリア、ベルギー、ブルネイ、チリ、クロアチア、チェコ共和国、デンマーク、エストニア、フィンランド、フランス、ドイツ、ギリシャ、ハンガリー、アイスランド、アイルランド、イタリア、日本、韓国、ラトビア、リヒテンシュタイン、リトアニア、ルクセンブルク、マルタ、モナコ、オランダ、ニュージーランド、ノルウェー、ポーランド、ポルトガル、カタール、サンマリノ、シンガポール、スロバキア、スロベニア、スペイン、スウェーデン、スイス、台湾、イギリスなどです。
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: ビザウェーバープログラム</span>
+                            
+                            <span>キーワード: ビザウェーバー;参加国;国名リスト</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/c8dec737" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('c8dec737')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="d934490c">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="d934490c" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: d934490c</span>
+                            
+                            <span class="qa-date">2025-10-09 07:58:48</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            ビザの有効期限と滞在期限の違いは何ですか?
+                        </div>
+
+                        <div class="qa-answer">
+                            ビザの有効期限はそのビザで認められた目的でいつまでアメリカに入国できるかを示しますが、一方滞在期限はいつまでアメリカに滞在できるかを示します 有効期限は在外公館の領事が決め、滞在期限は移民局と入国審査官が決定します ビザの有効期限が過ぎても滞在許可が有効であれば合法的に滞在し続けられますが、一度出国すると滞在許可が失効し再入国にはビザが必要になります
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: ビザ基礎</span>
+                            
+                            <span>キーワード: ビザ;有効期限;滞在期限;入国;滞在;在外公館;移民局;入国審査官</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/d934490c" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('d934490c')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="cca9d9c2">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="cca9d9c2" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: cca9d9c2</span>
+                            
+                            <span class="qa-date">2025-10-09 07:58:48</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            I-94とは何ですか?その役割は何ですか?
+                        </div>
+
+                        <div class="qa-answer">
+                            I-94は米国の入出国記録を指します 入国時に入国審査官によってパスポートにスタンプが押され、滞在ステータスと滞在期限が記入されます 陸路やワシントンとカナダ間のフェリーでの入国では例外的にパスポートに貼り付けられます I-94に間違いがあれば地域のDeferred Inspection Siteや入国した空港で修正の手続きができます
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: I-94</span>
+                            
+                            <span>キーワード: I-94;入出国記録;滞在ステータス;滞在期限;入国審査;パスポート;修正手続き</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/cca9d9c2" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('cca9d9c2')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="7f5610d5">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="7f5610d5" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: 7f5610d5</span>
+                            
+                            <span class="qa-date">2025-10-09 07:58:48</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            パスポートの有効期間とビザの有効期間の関係はどのようになっていますか?
+                        </div>
+
+                        <div class="qa-answer">
+                            与えられる滞在期限は通常ビザの有効期間とパスポートの有効期間のどちらか短い方までとなります 例えば日本人のB1/B2ビザは10年有効ですが、パスポートの有効期間が短ければパスポートの有効期限までしか滞在許可が与えられません 一方でパスポートの有効期間が十分でも入国審査官の判断で本来の期間より短く設定されることもあります
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: ビザ基礎</span>
+                            
+                            <span>キーワード: パスポート;ビザ;有効期間;滞在期限;入国審査官</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/7f5610d5" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('7f5610d5')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="306e781f">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="306e781f" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: 306e781f</span>
+                            
+                            <span class="qa-date">2025-10-09 07:58:48</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            ビザなしでアメリカに渡航する場合のリスクはありますか?
+                        </div>
+
+                        <div class="qa-answer">
+                            就労目的でありながらビザなしで渡米するケースがあります これは虚偽の申告であり、発覚した場合のペナルティは大きなものとなります 企業がこのような社員の渡米を認めているのも不法就労の問題があります ビザなしで入国を拒否された場合、その記録によりESTAの認証が受けられなくなり、今後のビザ取得も難しくなる可能性があります また複数人での渡米なら同僚の入国も阻害される可能性があります ビザなし渡航は手軽ですが、慎重に検討する必要があります
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: ビザなし渡航</span>
+                            
+                            <span>キーワード: ビザなし;就労;虚偽申告;不法就労;入国拒否;ESTA;ビザ取得</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/306e781f" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('306e781f')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="a57e32e4">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="a57e32e4" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: a57e32e4</span>
+                            
+                            <span class="qa-date">2025-10-09 07:58:48</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            ビザウェーバープログラムの参加国はどこですか?
+                        </div>
+
+                        <div class="qa-answer">
+                            ビザウェーバープログラムの適用対象国は2024年11月現在、Andorra、Australia、Austria、Belgium、Brunei、Chile、Croatia、Czech Republic、Denmark、Estonia、Finland、France、Germany、Greece、Hungary、Iceland、Ireland、Israel、Italy、Japan、Korea、Latvia、Liechtenstein、Lithuania、Luxembourg、Malta、Monaco、Netherlands、New Zealand、Norway、Poland、Portugal、Qatar、San Marino、Singapore、Slovakia、Slovenia、Spain、Sweden、Switzerland、Taiwan、United Kingdomの42か国です
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: ビザウェーバープログラム</span>
+                            
+                            <span>キーワード: ビザウェーバープログラム;参加国;日本</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/a57e32e4" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('a57e32e4')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="aa9a8d0f">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="aa9a8d0f" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: aa9a8d0f</span>
+                            
+                            <span class="qa-date">2025-10-09 07:58:48</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            Automatic Revalidationとは何ですか?
+                        </div>
+
+                        <div class="qa-answer">
+                            Automatic Revalidationとは、非移民ビザが無効でも、I-94が有効であれば一定の条件の下で再入国が可能な制度のことです 条件は例えば新しいビザ申請中、過去30日以内の外国渡航、テロ支援国以外への渡航などです ただし、F学生ビザやJ交流訪問者ビザ保持者がキューバに渡航した場合などは例外的にAutomaticRevalidationは適用されません
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: Automatic Revalidation</span>
+                            
+                            <span>キーワード: Automatic Revalidation;非移民ビザ;I-94;再入国;条件</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/aa9a8d0f" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('aa9a8d0f')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="b3b89de1">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="b3b89de1" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: b3b89de1</span>
+                            
+                            <span class="qa-date">2025-10-09 07:58:48</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            オーバーステイした場合のペナルティはどのようなものがありますか?
+                        </div>
+
+                        <div class="qa-answer">
+                            オーバーステイが180日を超えると3年間、さらに1年以上になると10年間米国に入国できなくなります また1年以上の不法滞在後に入国許可なく再入国しようとすると永久に入国禁止となります オーバーステイしてビザが無効になった場合、ビザの取り直しが必要になります
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: オーバーステイ</span>
+                            
+                            <span>キーワード: オーバーステイ;ペナルティ;入国禁止;ビザ無効</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/b3b89de1" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('b3b89de1')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="a4d32732">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="a4d32732" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: a4d32732</span>
+                            
+                            <span class="qa-date">2025-10-09 07:58:48</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            商用とは具体的にどのような活動を指しますか?就労とどのように異なりますか?
+                        </div>
+
+                        <div class="qa-answer">
+                            商用には取引先との会合、科学・教育・専門・ビジネス分野の会議参加、財産処理、契約交渉などが該当します 一方で米国内の就労活動は商用とはみなされません 具体的には自ら手を動かす作業や、現地法人の運営業務などは就労とみなされる可能性が高く、指示や情報提供程度の活動であれば商用と認められる可能性があります ただし判断は微妙な場合もあり移民法弁護士に相談することをおすすめします
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: 商用と就労の違い</span>
+                            
+                            <span>キーワード: 商用;就労;活動内容;判断基準</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/a4d32732" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('a4d32732')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="67111841">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="67111841" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: 67111841</span>
+                            
+                            <span class="qa-date">2025-10-09 07:58:48</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            I-94が回収されずに出国した場合、どのような影響がありますか?
+                        </div>
+
+                        <div class="qa-answer">
+                            I-94が回収されずに出国した場合、記録上アメリカに滞在したままとなり、不法滞在として記録が残る可能性があります そのため税関国境警備局に出国の証拠と一緒にI-94を送付する必要があります 出国の証拠としては搭乗券の原本、出国のスタンプのあるパスポートコピー、出国後の給与明細や銀行取引記録などが認められます
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: I-94</span>
+                            
+                            <span>キーワード: I-94;回収漏れ;出国証拠;不法滞在</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/67111841" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('67111841')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="6c2f458f">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="6c2f458f" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: 6c2f458f</span>
+                            
+                            <span class="qa-date">2025-10-09 07:58:48</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            ビザウェーバープログラムでの渡航中に90日を超えて滞在する場合はどうなりますか?
+                        </div>
+
+                        <div class="qa-answer">
+                            ビザウェーバープログラムを利用してアメリカに入国する場合、渡航目的が観光や商用、通過であれば90日以内の滞在が認められますが、90日を超えて滞在することはできません 滞在期間を延長したり、滞在資格を変更したい場合は、ビザウェーバープログラムを利用することはできず、ビザの取得が必要になります
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: ビザウェーバープログラム</span>
+                            
+                            <span>キーワード: ビザウェーバープログラム;滞在期間;90日;延長;ビザ取得</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/6c2f458f" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('6c2f458f')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="264fbb90">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="264fbb90" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: 264fbb90</span>
+                            
+                            <span class="qa-date">2025-10-09 10:48:00</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            パスポートとビザの有効期間の関係はどのようになっていますか?
+                        </div>
+
+                        <div class="qa-answer">
+                            ビザの有効期間はパスポートの有効期間のどちらか短い方まで認められます。ですので、パスポートの有効期間が10年であっても、ビザの有効期間が2年などと短い場合は2年までしか滞在できません。
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: AI生成</span>
+                            
+                            <span>キーワード: パスポート;ビザ;有効期間</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/264fbb90" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('264fbb90')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="c4f09cd4">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="c4f09cd4" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: c4f09cd4</span>
+                            
+                            <span class="qa-date">2025-10-09 10:48:00</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            I-94は何のためのものですか?どのように確認できますか?
+                        </div>
+
+                        <div class="qa-answer">
+                            I-94は入出国記録です。パスポートにスタンプされるか、別の入国カードが発行されます。入国時に付与された滞在期限はI-94に記載されているので、必ず確認しましょう。税関国境警備局のウェブサイトからも確認できます。
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: AI生成</span>
+                            
+                            <span>キーワード: I-94;入国記録;滞在期限</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/c4f09cd4" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('c4f09cd4')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="e2ca54b9">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="e2ca54b9" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: e2ca54b9</span>
+                            
+                            <span class="qa-date">2025-10-09 10:48:00</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            ビザの有効期間と滞在期限はどのように異なりますか?
+                        </div>
+
+                        <div class="qa-answer">
+                            ビザの有効期間はそのビザで認められた目的で入国できる期間を示します。一方、滞在期限はアメリカに実際に滞在できる期間を示します。ビザの有効期限が過ぎていても、滞在期限内であれば合法的に滞在し続けられます。ただし、一度出国すると滞在許可が失効し、再入国にはビザが必要になります。
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: AI生成</span>
+                            
+                            <span>キーワード: ビザ;有効期間;滞在期限</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/e2ca54b9" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('e2ca54b9')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="88d73d30">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="88d73d30" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: 88d73d30</span>
+                            
+                            <span class="qa-date">2025-10-09 10:48:00</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            ビザウェーバープログラムで渡航中に90日を超えて滞在する場合はどうなりますか?
+                        </div>
+
+                        <div class="qa-answer">
+                            ビザウェーバープログラムでは、90日以下の短期滞在が認められます。90日を超えて滞在した場合、オーバーステイとなり、その後の入国に大きな影響があります。オーバーステイが180日を超えると3年間、1年以上になると10年間の米国入国制限が課されます。また1年以上のオーバーステイ後に無許可で再入国を試みると、永久入国禁止となる可能性があります。
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: AI生成</span>
+                            
+                            <span>キーワード: ビザウェーバー;オーバーステイ;滞在期間</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/88d73d30" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('88d73d30')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="f582cee8">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="f582cee8" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: f582cee8</span>
+                            
+                            <span class="qa-date">2025-10-09 10:48:00</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            I-94が回収されずに出国した場合、どのような影響がありますか?
+                        </div>
+
+                        <div class="qa-answer">
+                            I-94が回収されずに出国した場合、記録上アメリカに滞在したままになり、不法滞在として扱われる可能性があります。この場合、税関国境警備局に出国した証拠を提出する必要があります。提出できる証拠には、搭乗券の原本、出国後のパスポートのスタンプ、給与明細、銀行取引記録などがあります。証拠を提出しないと、不法滞在として扱われる可能性があります。
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: AI生成</span>
+                            
+                            <span>キーワード: I-94;出国;不法滞在</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/f582cee8" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('f582cee8')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="25a2d3d1">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="25a2d3d1" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: 25a2d3d1</span>
+                            
+                            <span class="qa-date">2025-10-09 10:48:00</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            商用とは具体的にどのような活動を指しますか?就労とどのように異なりますか?
+                        </div>
+
+                        <div class="qa-answer">
+                            商用には、取引先との会合、科学・教育・専門・ビジネス分野の会議への参加、財産の処理、契約交渉などが含まれます。一方、実際に手を動かす作業や、現地スタッフの仕事を代替するような直接的な活動は就労とみなされる可能性が高くなります。就労目的の場合は適切なビザ(H-1B等)の取得が必要となります。
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: AI生成</span>
+                            
+                            <span>キーワード: 商用;就労;活動内容</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/25a2d3d1" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('25a2d3d1')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="0d25ae76">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="0d25ae76" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: 0d25ae76</span>
+                            
+                            <span class="qa-date">2025-10-09 10:48:00</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            Automatic Revalidationとは何ですか?
+                        </div>
+
+                        <div class="qa-answer">
+                            Automatic Revalidationとは、ビザが無効になっていても一定の条件を満たせば、I-94の有効期限までアメリカに再入国して滞在できる制度です。条件は以下の通りです。新しいビザを申請中、渡航期間が30日未満、カナダ・メキシコ・近隣の島しょ国以外には渡航していない、など。ただし一部の国籍やビザ保持者は適用外となります。
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: AI生成</span>
+                            
+                            <span>キーワード: Automatic Revalidation;再入国;I-94</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/0d25ae76" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('0d25ae76')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="ef4df355">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="ef4df355" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: ef4df355</span>
+                            
+                            <span class="qa-date">2025-10-09 10:48:00</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            ビザウェーバープログラムでのオーバーステイのペナルティはどのようなものがありますか?
+                        </div>
+
+                        <div class="qa-answer">
+                            ビザウェーバープログラムでオーバーステイした場合、その後の入国に大きな影響があります。オーバーステイが180日を超えると3年間、1年以上になると10年間の米国入国制限が課されます。また1年以上のオーバーステイ後に無許可で再入国を試みると、永久入国禁止になる可能性があります。ビザウェーバー利用の際は滞在期限を厳守することが重要です。
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: AI生成</span>
+                            
+                            <span>キーワード: ビザウェーバー;オーバーステイ;ペナルティ</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/ef4df355" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('ef4df355')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="aa5ac0e0">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="aa5ac0e0" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: aa5ac0e0</span>
+                            
+                            <span class="qa-date">2025-10-09 10:48:00</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            ビザウェーバープログラムの参加国はどこですか?
+                        </div>
+
+                        <div class="qa-answer">
+                            ビザウェーバープログラムの参加国は2024年11月現在、42か国です。主な国は日本、オーストラリア、ヨーロッパ諸国、シンガポール、韓国などです。これらの国の国籍保有者であれば、ビザを取得せずに90日以内の商用や観光目的で渡米することができます。一方、それ以外の国籍の人は事前にビザの取得が必要になります。
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: AI生成</span>
+                            
+                            <span>キーワード: ビザウェーバー;参加国</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/aa5ac0e0" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('aa5ac0e0')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qa-item pending" data-qa-id="12e299d6">
+                    <div class="qa-checkbox">
+                        <input type="checkbox" name="qa_ids" value="12e299d6" class="qa-select">
+                    </div>
+
+                    <div class="qa-content">
+                        <div class="qa-header">
+                            <span class="qa-id">ID: 12e299d6</span>
+                            
+                            <span class="qa-date">2025-10-09 10:48:00</span>
+                        </div>
+
+                        
+                        <div class="original-question">
+                            <strong>元の質問:</strong> [自動生成] 第2章.pdfから生成
+                        </div>
+                        
+
+                        <div class="qa-question">
+                            ビザなしでアメリカに渡航する場合のリスクはありますか?
+                        </div>
+
+                        <div class="qa-answer">
+                            ビザなしでアメリカに渡航するリスクは大きいです。就労目的であっても「短期間の滞在」や「ビザ取得間に合わない」といった理由でビザなしで入国しようとすると、虚偽の申告とみなされ重大な結果を招きます。入国拒否された場合は、その後のESTAの申請や別途のビザ取得も困難になります。また所属企業のデータベース登録により、同僚の入国にも影響が出る可能性があります。ビザなしでの渡航は慎重に検討する必要があります。
+                        </div>
+
+                        <div class="qa-meta">
+                            <span>カテゴリ: AI生成</span>
+                            
+                            <span>キーワード: ビザなし;渡航;リスク</span>
+                            
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="/admin/check_duplicates/12e299d6" class="btn btn-check">
+                                🔍 重複チェック
+                            </a>
+                            <button type="button" class="btn btn-reject" onclick="rejectSingle('12e299d6')">
+                                ❌ 却下
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+            </form>
+            
+        </div>
+    </div>
+
+    <script>
+        // チェックボックスの状態管理
+        const checkboxes = document.querySelectorAll('.qa-select');
+        const selectAllCheckbox = document.getElementById('select-all');
+        const batchRejectBtn = document.getElementById('batch-reject');
+        const selectedCountEl = document.getElementById('selected-count');
+
+        function updateUI() {
+            const checkedBoxes = document.querySelectorAll('.qa-select:checked');
+            const count = checkedBoxes.length;
+
+            // 選択数を更新
+            selectedCountEl.textContent = count;
+
+            // バッチボタンの表示/非表示
+            if (count > 0) {
+                batchRejectBtn.classList.add('active');
+            } else {
+                batchRejectBtn.classList.remove('active');
+            }
+
+            // 選択されたアイテムのハイライト
+            document.querySelectorAll('.qa-item').forEach(item => {
+                const checkbox = item.querySelector('.qa-select');
+                if (checkbox && checkbox.checked) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+
+            // 全選択チェックボックスの状態
+            if (count === checkboxes.length && count > 0) {
+                selectAllCheckbox.checked = true;
+                selectAllCheckbox.indeterminate = false;
+            } else if (count > 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = true;
+            } else {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            }
+        }
+
+        // 全選択/解除
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                checkboxes.forEach(cb => cb.checked = this.checked);
+                updateUI();
+            });
+        }
+
+        // 個別チェックボックス
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', updateUI);
+        });
+
+        // まとめて却下
+        function batchReject() {
+            const checkedBoxes = document.querySelectorAll('.qa-select:checked');
+            const count = checkedBoxes.length;
+
+            if (count === 0) {
+                alert('却下するFAQを選択してください');
+                return;
+            }
+
+            if (confirm(`選択した${count}件のFAQをまとめて却下しますか？`)) {
+                document.getElementById('batch-form').submit();
+            }
+        }
+
+        // 個別却下
+        function rejectSingle(qaId) {
+            if (confirm('このFAQを却下しますか?')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/admin/reject/' + qaId;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        // 初期化
+        updateUI();
+    </script>
+</body>
+</html>
