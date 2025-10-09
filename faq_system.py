@@ -810,8 +810,8 @@ JSON形式のみを出力し、説明文は不要です。
             }
 
             data = {
-                'model': 'claude-3-haiku-20240307',
-                'max_tokens': 4000,
+                'model': 'claude-3-5-sonnet-20241022',  # より高性能なモデルで精度向上
+                'max_tokens': 8000,  # FAQ生成に十分なトークン数
                 'messages': [
                     {
                         'role': 'user',
@@ -913,20 +913,25 @@ JSON形式のみを出力し、説明文は不要です。
                         self._save_to_generation_history(faqs)
                         return faqs
                     except json.JSONDecodeError as e:
-                        print(f"[DEBUG] JSONパースエラー: {e}")
-                        print(f"[DEBUG] パース失敗したJSON（最初の500文字）: {json_str[:500]}")
-                        return self._mock_faq_generation(num_questions, category)
+                        print(f"[ERROR] JSONパースエラー: {e}")
+                        print(f"[ERROR] パース失敗したJSON（最初の500文字）: {json_str[:500]}")
+                        print(f"[ERROR] JSON生成に失敗しました。FAQ生成を中止します。")
+                        # モック生成は使わず、空のリストを返す
+                        return []
                 else:
-                    print(f"[DEBUG] Claude の回答からJSONを抽出できませんでした")
-                    print(f"[DEBUG] Claude応答全体: {content}")
-                    return self._mock_faq_generation(num_questions, category)
+                    print(f"[ERROR] Claude の回答からJSONを抽出できませんでした")
+                    print(f"[ERROR] Claude応答全体: {content}")
+                    return []
             else:
-                print(f"[DEBUG] Claude API エラー - ステータス: {response.status_code}")
-                return self._mock_faq_generation(num_questions, category)
+                print(f"[ERROR] Claude API エラー - ステータス: {response.status_code}")
+                print(f"[ERROR] レスポンス: {response.text[:500]}")
+                return []
 
         except Exception as e:
-            print(f"[DEBUG] FAQ生成エラー: {e}")
-            return self._mock_faq_generation(num_questions, category)
+            print(f"[ERROR] FAQ生成エラー: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
 
     def _mock_faq_generation(self, num_questions: int, category: str) -> list:
         """Claude API未設定時のモック FAQ 生成"""
