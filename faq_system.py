@@ -810,7 +810,7 @@ JSON形式のみを出力し、説明文は不要です。
             }
 
             data = {
-                'model': 'claude-3-5-sonnet-20240620',  # Sonnet 3.5（高精度）
+                'model': 'claude-3-haiku-20240307',  # 動作確認済みモデル
                 'max_tokens': 8000,  # FAQ生成に十分なトークン数
                 'messages': [
                     {
