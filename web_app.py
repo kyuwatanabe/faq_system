@@ -80,6 +80,22 @@ def auto_generate_faq_page():
     """FAQ自動生成画面"""
     return render_template('auto_generate_faq.html')
 
+@app.route('/admin/clear_history', methods=['POST'])
+def clear_generation_history():
+    """FAQ生成履歴をクリア（デバッグ用）"""
+    import os
+    history_file = 'faq_generation_history.csv'
+    try:
+        if os.path.exists(history_file):
+            os.remove(history_file)
+            print(f"[DEBUG] FAQ生成履歴を削除: {history_file}")
+            return jsonify({'success': True, 'message': 'FAQ生成履歴を削除しました'})
+        else:
+            return jsonify({'success': True, 'message': '履歴ファイルは存在しません'})
+    except Exception as e:
+        print(f"[ERROR] 履歴削除エラー: {e}")
+        return jsonify({'success': False, 'message': f'エラー: {e}'})
+
 @app.route('/admin/add', methods=['POST'])
 def add_faq():
     """FAQ追加"""

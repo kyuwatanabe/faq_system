@@ -248,6 +248,12 @@
                     <button type="submit" class="btn" id="generateBtn">FAQ自動生成を実行</button>
                     <div id="generateStatus" class="generate-status"></div>
                 </form>
+
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #ddd;">
+                    <h3 style="color: #666; font-size: 16px; margin-bottom: 10px;">🔧 デバッグツール</h3>
+                    <button type="button" class="btn" id="clearHistoryBtn" style="background: #dc3545;">FAQ生成履歴をクリア</button>
+                    <div id="clearStatus" class="generate-status"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -289,6 +295,43 @@
                 // ボタンを再有効化
                 generateBtn.disabled = false;
                 generateBtn.textContent = 'FAQ自動生成を実行';
+            });
+        });
+
+        // FAQ生成履歴クリア機能
+        document.getElementById('clearHistoryBtn').addEventListener('click', function() {
+            const clearBtn = document.getElementById('clearHistoryBtn');
+            const statusDiv = document.getElementById('clearStatus');
+
+            if (!confirm('FAQ生成履歴を削除しますか？これにより、重複チェックがリセットされます。')) {
+                return;
+            }
+
+            clearBtn.disabled = true;
+            clearBtn.textContent = '削除中...';
+            statusDiv.className = 'generate-status loading';
+            statusDiv.textContent = '履歴を削除しています...';
+
+            fetch('/admin/clear_history', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    statusDiv.className = 'generate-status success';
+                    statusDiv.textContent = data.message;
+                } else {
+                    statusDiv.className = 'generate-status error';
+                    statusDiv.textContent = `エラー: ${data.message}`;
+                }
+            })
+            .catch(error => {
+                statusDiv.className = 'generate-status error';
+                statusDiv.textContent = `エラー: ${error.message}`;
+            })
+            .finally(() => {
+                clearBtn.disabled = false;
+                clearBtn.textContent = 'FAQ生成履歴をクリア';
             });
         });
     </script>
