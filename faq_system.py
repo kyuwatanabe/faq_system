@@ -879,9 +879,9 @@ JSON形式のみを出力し、説明文は不要です。
                         # JSON文字列のクリーニング
                         import unicodedata
 
-                        # ステップ1: 制御文字を除去（JSON構造に必要な文字は保持）
+                        # ステップ1: 全ての制御文字を除去（改行・タブ含む）
                         cleaned_json = ''.join(
-                            char if char in '{}[]":,\n\t ' or not unicodedata.category(char).startswith('C')
+                            char if char in '{}[]":, ' or not unicodedata.category(char).startswith('C')
                             else ' '
                             for char in json_str
                         )
