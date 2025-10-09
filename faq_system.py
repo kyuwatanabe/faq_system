@@ -942,7 +942,7 @@ JSON形式のみを出力し、説明文は不要です。
                         # 意味的重複チェック（生成されたFAQ同士の類似度チェック）
                         print(f"[DEBUG] 意味的重複チェックを開始...")
                         filtered_faqs = []
-                        similarity_threshold = 0.50  # 50%以上の類似度は重複とみなす（バリエーション重視）
+                        similarity_threshold = 0.40  # 40%以上の類似度は重複とみなす（バリエーション許容）
 
                         for i, faq in enumerate(faqs):
                             is_duplicate = False
