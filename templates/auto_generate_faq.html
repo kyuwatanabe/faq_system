@@ -232,37 +232,20 @@
         </div>
 
         <div class="content">
-            <div class="info-box">
-                <h3>📄 使い方</h3>
+            <div class="info-box" style="background: #fff3cd; border-left-color: #ffc107;">
+                <h3>🔧 デバッグモード</h3>
                 <ul>
-                    <li>PDFファイルから自動的にFAQを生成します</li>
+                    <li><strong>第2章.pdfから自動的に10個のFAQを生成します</strong></li>
+                    <li>ボタンを押すだけで実行されます（ファイル選択不要）</li>
                     <li>生成されたFAQは承認待ちキューに追加されます</li>
-                    <li>承認画面で内容を確認してからFAQに追加できます</li>
                 </ul>
             </div>
 
             <div class="auto-generate-section">
-                <h2>PDF から FAQ を自動生成</h2>
+                <h2>FAQ 自動生成（デバッグモード）</h2>
+                <p style="margin-bottom: 20px; color: #666;">第2章.pdf から 10個のFAQを自動生成します</p>
                 <form action="/admin/auto_generate" method="post" enctype="multipart/form-data">
-                    <div class="form-group">
-                        <label for="source_file">ソースファイル (PDF): <span style="color: red;">*</span></label>
-                        <input type="file" id="source_file" name="source_file" accept=".pdf" required>
-                        <small class="file-help">PDF ファイルを選択してください（最大10MB）</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="num_questions">生成するFAQ数: <span style="color: red;">*</span></label>
-                        <input type="number" id="num_questions" name="num_questions" min="1" max="50" value="3" required>
-                        <small class="file-help">1〜50の範囲で指定してください</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="category">カテゴリ:</label>
-                        <input type="text" id="category" name="category" value="AI生成" maxlength="50">
-                        <small class="file-help">生成されたFAQに付与するカテゴリ</small>
-                    </div>
-
-                    <button type="submit" class="btn" id="generateBtn">FAQ自動生成</button>
+                    <button type="submit" class="btn" id="generateBtn">FAQ自動生成を実行</button>
                     <div id="generateStatus" class="generate-status"></div>
                 </form>
             </div>
@@ -270,7 +253,7 @@
     </div>
 
     <script>
-        // FAQ自動生成機能
+        // FAQ自動生成機能（デバッグモード）
         document.querySelector('form').addEventListener('submit', function(e) {
             e.preventDefault();
 
@@ -278,19 +261,11 @@
             const generateBtn = document.getElementById('generateBtn');
             const statusDiv = document.getElementById('generateStatus');
 
-            // ファイルが選択されているか確認
-            const fileInput = document.getElementById('source_file');
-            if (!fileInput.files.length) {
-                statusDiv.className = 'generate-status error';
-                statusDiv.textContent = 'PDFファイルを選択してください';
-                return;
-            }
-
             // ボタンを無効化してローディング表示
             generateBtn.disabled = true;
             generateBtn.textContent = '生成中...';
             statusDiv.className = 'generate-status loading';
-            statusDiv.textContent = 'FAQ生成中です。しばらくお待ちください...';
+            statusDiv.textContent = 'FAQ生成中です（第2章.pdfから10個生成）。しばらくお待ちください...';
 
             fetch('/admin/auto_generate', {
                 method: 'POST',
@@ -301,8 +276,6 @@
                 if (data.success) {
                     statusDiv.className = 'generate-status success';
                     statusDiv.textContent = `成功！${data.generated_count}件のFAQを承認待ちキューに追加しました。`;
-                    // フォームをリセット
-                    this.reset();
                 } else {
                     statusDiv.className = 'generate-status error';
                     statusDiv.textContent = `エラー: ${data.message}`;
@@ -315,7 +288,7 @@
             .finally(() => {
                 // ボタンを再有効化
                 generateBtn.disabled = false;
-                generateBtn.textContent = 'FAQ自動生成';
+                generateBtn.textContent = 'FAQ自動生成を実行';
             });
         });
     </script>
