@@ -717,12 +717,8 @@ class FAQSystem:
             self.load_pending_qa()
             pending_questions = [item['question'] for item in self.pending_qa if 'question' in item]
 
-            # 過去に生成したFAQの履歴も読み込む
-            generation_history = self._load_generation_history()
-            history_questions = [item['question'] for item in generation_history if 'question' in item]
-
-            # 既存、承認待ち、履歴を統合
-            all_existing_questions = existing_questions + pending_questions + history_questions
+            # 既存FAQと承認待ちのみを統合（履歴は使わない）
+            all_existing_questions = existing_questions + pending_questions
 
             # 重複を除去して番号付きリストを作成
             unique_questions = []
@@ -739,7 +735,7 @@ class FAQSystem:
             else:
                 existing_context = "既存の質問はありません。"
 
-            print(f"[DEBUG] 重複チェック対象 - 既存FAQ: {len(existing_questions)}件, 承認待ち: {len(pending_questions)}件, 履歴: {len(history_questions)}件")
+            print(f"[DEBUG] 重複チェック対象 - 既存FAQ: {len(existing_questions)}件, 承認待ち: {len(pending_questions)}件")
             print(f"[DEBUG] ユニークな既存質問: {len(unique_questions)}件")
 
             # プロンプト作成
