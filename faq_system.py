@@ -1084,6 +1084,7 @@ JSON形式のみを出力し、説明文は不要です。
                                 additional_result = additional_response.json()
                                 additional_content = additional_result['content'][0]['text']
                                 print(f"[DEBUG] 追加FAQ生成成功")
+                                print(f"[DEBUG] 追加FAQ応答の最初の500文字: {additional_content[:500]}")
 
                                 # JSON抽出
                                 additional_json_match = re.search(r'```json\s*(\[.*?\])\s*```', additional_content, re.DOTALL)
@@ -1106,12 +1107,14 @@ JSON形式のみを出力し、説明文は不要です。
 
                                 try:
                                     additional_faqs = json.loads(additional_cleaned)
+                                    print(f"[DEBUG] 追加で{len(additional_faqs)}件のFAQを解析しました")
                                 except:
                                     print(f"[DEBUG] 追加生成のJSON解析に失敗")
                                     break
 
                                 # 重複チェックして追加
                                 for add_faq in additional_faqs:
+                                    print(f"[DEBUG] 追加FAQ候補をチェック中: {add_faq.get('question', '')[:60]}...")
                                     add_question = add_faq.get('question', '')
                                     add_answer = add_faq.get('answer', '')
 
@@ -1124,7 +1127,9 @@ JSON形式のみを出力し、説明文は不要です。
                                     # 重複チェック
                                     is_dup = False
                                     for existing_q in unique_questions:
-                                        if self.calculate_similarity(add_question, existing_q) >= similarity_threshold:
+                                        similarity = self.calculate_similarity(add_question, existing_q)
+                                        if similarity >= similarity_threshold:
+                                            print(f"[DEBUG] 重複検出（類似度{similarity:.2f}）: {add_question[:40]}... ≈ {existing_q[:40]}...")
                                             is_dup = True
                                             break
 
