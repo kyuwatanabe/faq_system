@@ -411,53 +411,70 @@ def check_duplicates(qa_id):
 def auto_generate_faqs():
     """FAQ自動生成API"""
     try:
-        # ファイルアップロードの処理
-        uploaded_file = request.files.get('source_file')
-        num_questions = int(request.form.get('num_questions', 3))
-        category = request.form.get('category', 'AI生成').strip()
-
-        if not uploaded_file or uploaded_file.filename == '':
-            return jsonify({'success': False, 'message': 'PDFファイルを選択してください'})
-
-        if not uploaded_file.filename.lower().endswith('.pdf'):
-            return jsonify({'success': False, 'message': 'PDFファイルのみアップロード可能です'})
-
-        if num_questions < 1 or num_questions > 50:
-            return jsonify({'success': False, 'message': '生成数は1-50の範囲で指定してください'})
-
-        # ファイルサイズチェック（10MB制限）
-        uploaded_file.seek(0, 2)  # ファイルの末尾に移動
-        file_size = uploaded_file.tell()
-        uploaded_file.seek(0)  # ファイルの先頭に戻す
-
-        if file_size > 10 * 1024 * 1024:  # 10MB
-            return jsonify({'success': False, 'message': 'ファイルサイズが10MBを超えています'})
-
-        # 一時ファイルとして保存
+        # デバッグモード: 第2章.pdfを固定で使用
         import os
-        import tempfile
-        import uuid
+        DEBUG_MODE = True
 
-        temp_dir = tempfile.gettempdir()
-        temp_filename = f"uploaded_pdf_{uuid.uuid4().hex[:8]}_{uploaded_file.filename}"
-        pdf_path = os.path.join(temp_dir, temp_filename)
+        if DEBUG_MODE:
+            print("[DEBUG] デバッグモード: 第2章.pdfを使用")
+            pdf_path = os.path.join(os.path.dirname(__file__), 'reference_docs', '第2章.pdf')
+            num_questions = 10
+            category = 'AI生成'
 
-        try:
-            # アップロードされたファイルを保存
-            uploaded_file.save(pdf_path)
-            print(f"[DEBUG] FAQ自動生成開始 - ファイル: {uploaded_file.filename}, 数: {num_questions}")
+            if not os.path.exists(pdf_path):
+                return jsonify({'success': False, 'message': f'デバッグ用PDFが見つかりません: {pdf_path}'})
+
+            print(f"[DEBUG] FAQ自動生成開始 - ファイル: 第2章.pdf, 数: {num_questions}")
 
             # FAQ生成
             generated_faqs = faq_system.generate_faqs_from_document(pdf_path, num_questions, category)
+        else:
+            # 通常モード: ファイルアップロードの処理
+            uploaded_file = request.files.get('source_file')
+            num_questions = int(request.form.get('num_questions', 3))
+            category = request.form.get('category', 'AI生成').strip()
 
-        finally:
-            # 一時ファイルをクリーンアップ
+            if not uploaded_file or uploaded_file.filename == '':
+                return jsonify({'success': False, 'message': 'PDFファイルを選択してください'})
+
+            if not uploaded_file.filename.lower().endswith('.pdf'):
+                return jsonify({'success': False, 'message': 'PDFファイルのみアップロード可能です'})
+
+            if num_questions < 1 or num_questions > 50:
+                return jsonify({'success': False, 'message': '生成数は1-50の範囲で指定してください'})
+
+            # ファイルサイズチェック（10MB制限）
+            uploaded_file.seek(0, 2)  # ファイルの末尾に移動
+            file_size = uploaded_file.tell()
+            uploaded_file.seek(0)  # ファイルの先頭に戻す
+
+            if file_size > 10 * 1024 * 1024:  # 10MB
+                return jsonify({'success': False, 'message': 'ファイルサイズが10MBを超えています'})
+
+            # 一時ファイルとして保存
+            import tempfile
+            import uuid
+
+            temp_dir = tempfile.gettempdir()
+            temp_filename = f"uploaded_pdf_{uuid.uuid4().hex[:8]}_{uploaded_file.filename}"
+            pdf_path = os.path.join(temp_dir, temp_filename)
+
             try:
-                if os.path.exists(pdf_path):
-                    os.remove(pdf_path)
-                    print(f"[DEBUG] 一時ファイル削除: {pdf_path}")
-            except Exception as cleanup_error:
-                print(f"[DEBUG] 一時ファイル削除エラー: {cleanup_error}")
+                # アップロードされたファイルを保存
+                uploaded_file.save(pdf_path)
+                print(f"[DEBUG] FAQ自動生成開始 - ファイル: {uploaded_file.filename}, 数: {num_questions}")
+
+                # FAQ生成
+                generated_faqs = faq_system.generate_faqs_from_document(pdf_path, num_questions, category)
+
+            finally:
+                # 一時ファイルをクリーンアップ（通常モードのみ）
+                try:
+                    if os.path.exists(pdf_path):
+                        os.remove(pdf_path)
+                        print(f"[DEBUG] 一時ファイル削除: {pdf_path}")
+                except Exception as cleanup_error:
+                    print(f"[DEBUG] 一時ファイル削除エラー: {cleanup_error}")
 
         if not generated_faqs:
             return jsonify({'success': False, 'message': 'FAQの生成に失敗しました'})
@@ -471,7 +488,7 @@ def auto_generate_faqs():
                     answer=faq.get('answer', ''),
                     keywords=faq.get('keywords', ''),
                     category=faq.get('category', category),
-                    user_question=f"[自動生成] {uploaded_file.filename}から生成"
+                    user_question=f"[自動生成] 第2章.pdfから生成" if DEBUG_MODE else f"[自動生成] {uploaded_file.filename}から生成"
                 )
                 added_count += 1
                 print(f"[DEBUG] 承認待ちQ&Aに追加: {qa_id}")
