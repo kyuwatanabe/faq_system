@@ -811,7 +811,7 @@ JSON形式のみを出力し、説明文は不要です。
 
             data = {
                 'model': 'claude-3-haiku-20240307',  # 動作確認済みモデル
-                'max_tokens': 8000,  # FAQ生成に十分なトークン数
+                'max_tokens': 4096,  # Haikuの最大値
                 'messages': [
                     {
                         'role': 'user',
