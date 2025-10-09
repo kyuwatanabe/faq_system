@@ -47,4 +47,4 @@ faq_generation_history.csv
 unsatisfied_qa.csv
 
 # Reference documents (optional - remove if you want to include PDFs)
-reference_docs/
+# reference_docs/  # デバッグ用に一時的にコメントアウト
