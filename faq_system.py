@@ -832,12 +832,27 @@ JSON形式のみを出力し、説明文は不要です。
 
             json_data = json.dumps(data, ensure_ascii=False)
 
-            response = requests.post(
-                'https://api.anthropic.com/v1/messages',
-                headers=headers,
-                data=json_data.encode('utf-8'),
-                timeout=60
-            )
+            # リトライロジック（529エラー対応）
+            max_retries = 3
+            retry_delay = 5  # 秒
+
+            for attempt in range(max_retries):
+                response = requests.post(
+                    'https://api.anthropic.com/v1/messages',
+                    headers=headers,
+                    data=json_data.encode('utf-8'),
+                    timeout=60
+                )
+
+                if response.status_code == 200:
+                    break
+                elif response.status_code == 529 and attempt < max_retries - 1:
+                    print(f"[WARNING] Claude API過負荷 (529) - {attempt + 1}/{max_retries}回目、{retry_delay}秒後にリトライ...")
+                    import time
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # 指数バックオフ
+                else:
+                    break
 
             if response.status_code == 200:
                 result = response.json()
