@@ -979,6 +979,164 @@ JSON形式のみを出力し、説明文は不要です。
 
                         print(f"[DEBUG] 意味的重複チェック完了: {len(faqs)}件 → {len(filtered_faqs)}件")
 
+                        # 10件に満たない場合は追加生成（最大2回まで再試行）
+                        retry_count = 0
+                        max_retries = 2
+                        while len(filtered_faqs) < num_questions and retry_count < max_retries:
+                            retry_count += 1
+                            needed = num_questions - len(filtered_faqs)
+                            print(f"[DEBUG] 不足しているため追加生成: 現在{len(filtered_faqs)}件、あと{needed}件必要（再試行{retry_count}/{max_retries}）")
+
+                            # 既に生成した質問をunique_questionsに追加して重複を避ける
+                            for faq in filtered_faqs:
+                                q = faq.get('question', '')
+                                if q not in unique_questions:
+                                    unique_questions.append(q)
+
+                            # プロンプトを完全に再構築（既存質問リストを更新）
+                            retry_existing_context = "【重要：以下の★既存質問は絶対に生成しないこと】\n\n"
+                            retry_existing_context += "\n".join([f"★既存質問{i+1}: {q}" for i, q in enumerate(unique_questions[:100])])
+                            retry_existing_context += "\n\n上記の★既存質問と意味が重複する質問は絶対に生成しないでください。"
+
+                            retry_prompt = f"""
+あなたはアメリカビザ専門のFAQシステムのコンテンツ生成エキスパートです。
+
+{retry_existing_context}
+
+【タスク】
+上記の★既存質問と意味が重複しない、完全に異なるトピックのFAQを以下のPDFドキュメントから{needed}個生成してください。
+
+**重要**: PDFドキュメント全体から均等にトピックを選んでください。特定のトピック（例: ビザウェーバープログラム）だけでなく、PDFに含まれる全てのセクション（ビザの基礎、有効期限と滞在期限、I-94、オーバーステイ、商用と就労の違い、Automatic Revalidationなど）から質問を生成してください。
+
+【期待する質問の例】
+以下のように、PDFの異なるセクションから多様なトピックの質問を生成してください：
+- 「ビザの有効期限と滞在期限の違いは何ですか?」（ビザの基礎）
+- 「I-94とは何ですか?どこで確認できますか?」（I-94セクション）
+- 「オーバーステイするとどのようなペナルティがありますか?」（オーバーステイセクション）
+- 「商用目的と就労目的の違いは何ですか?」（商用と就労の違い）
+- 「Automatic Revalidationとはどのような制度ですか?」（Automatic Revalidation）
+- 「ビザが切れた後も滞在できるのはなぜですか?」（有効期限と滞在期限）
+
+**注意**: 上記は例示です。実際の質問はPDFの内容に基づいて生成してください。同じトピックを繰り返さず、異なるセクションから1つずつ選んでください。
+
+【ソースドキュメント】
+{pdf_content[:20000]}
+
+【生成要件】
+1. **絶対厳守**: PDFドキュメントに明示的に記載されている内容**のみ**からFAQを生成すること
+2. **絶対厳守**: 上記の★既存質問を一つ一つ確認し、それらと意味が重複する質問は絶対に生成しないこと
+3. **絶対厳守**: 必ず{needed}個のFAQを生成してください
+4. PDFに記載されている具体的な内容からのみ質問を作成すること
+5. 既存質問と完全に異なるトピックや、明確に異なる側面を扱う質問を生成すること
+6. 実用的で具体的な質問を作成する
+7. 日本人がよく聞きそうな質問にする
+8. 回答は正確で詳細、かつ分かりやすい日本語で
+9. 専門用語には適切な説明を加える
+10. **回答できない質問は生成しない**: PDFに十分な情報がないトピックは避け、確実に回答できる質問のみを生成すること
+
+【生成禁止の例】
+- PDFに詳細が書かれていない特定のビザ（H-1B、L-1、E-2、O-1など）の申請要件や手続き
+- PDFに記載がない投資額、推薦状の数、学歴要件などの具体的な数値
+- **「PDFには記載がありません」で終わるような回答不可能な質問**
+
+【出力形式】
+以下のJSON配列形式でFAQを出力してください（{needed}個）：
+
+[
+  {{
+    "question": "具体的な質問文",
+    "answer": "詳細で実用的な回答文（改行や引用符を使わず1行で記述）",
+    "keywords": "関連キーワード1;関連キーワード2;関連キーワード3",
+    "category": "{category}"
+  }},
+  ...
+]
+
+JSON形式のみを出力し、説明文は不要です。
+"""
+
+                            retry_data = {
+                                'model': 'claude-3-haiku-20240307',
+                                'max_tokens': 4096,
+                                'temperature': 1.0,
+                                'messages': [
+                                    {
+                                        'role': 'user',
+                                        'content': retry_prompt
+                                    }
+                                ]
+                            }
+                            json_data = json.dumps(retry_data, ensure_ascii=False)
+
+                            # 追加生成リクエスト
+                            import time
+                            time.sleep(2)  # レート制限回避
+
+                            additional_response = requests.post(
+                                'https://api.anthropic.com/v1/messages',
+                                headers=headers,
+                                data=json_data.encode('utf-8'),
+                                timeout=60
+                            )
+
+                            if additional_response.status_code == 200:
+                                additional_result = additional_response.json()
+                                additional_content = additional_result['content'][0]['text']
+                                print(f"[DEBUG] 追加FAQ生成成功")
+
+                                # JSON抽出
+                                additional_json_match = re.search(r'```json\s*(\[.*?\])\s*```', additional_content, re.DOTALL)
+                                if not additional_json_match:
+                                    additional_json_match = re.search(r'\[.*\]', additional_content, re.DOTALL)
+                                    if additional_json_match:
+                                        additional_json_str = additional_json_match.group()
+                                    else:
+                                        print(f"[DEBUG] 追加生成でJSONが見つかりませんでした")
+                                        break
+                                else:
+                                    additional_json_str = additional_json_match.group(1)
+
+                                # JSON処理
+                                additional_cleaned = ''.join(
+                                    char if char in '{}[]":, ' or not unicodedata.category(char).startswith('C')
+                                    else ' '
+                                    for char in additional_json_str
+                                )
+
+                                try:
+                                    additional_faqs = json.loads(additional_cleaned)
+                                except:
+                                    print(f"[DEBUG] 追加生成のJSON解析に失敗")
+                                    break
+
+                                # 重複チェックして追加
+                                for add_faq in additional_faqs:
+                                    add_question = add_faq.get('question', '')
+                                    add_answer = add_faq.get('answer', '')
+
+                                    # 回答不可能チェック
+                                    if 'pdfには記載がありません' in add_answer.lower() or '公式の情報源を参照' in add_answer or '公式情報を確認' in add_answer:
+                                        continue
+
+                                    # 重複チェック
+                                    is_dup = False
+                                    for existing_q in unique_questions:
+                                        if self.calculate_similarity(add_question, existing_q) >= similarity_threshold:
+                                            is_dup = True
+                                            break
+
+                                    if not is_dup:
+                                        filtered_faqs.append(add_faq)
+                                        unique_questions.append(add_question)
+                                        print(f"[DEBUG] 追加FAQ: {add_question[:50]}...")
+                                        if len(filtered_faqs) >= num_questions:
+                                            break
+                            else:
+                                print(f"[DEBUG] 追加生成リクエストが失敗: {additional_response.status_code}")
+                                break
+
+                        print(f"[DEBUG] 最終生成数: {len(filtered_faqs)}件")
+
                         # フィルタリング後のFAQを履歴に保存
                         self._save_to_generation_history(filtered_faqs)
                         return filtered_faqs
