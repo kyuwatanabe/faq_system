@@ -689,7 +689,7 @@ class FAQSystem:
             }
 
     def generate_faqs_from_document(self, pdf_path: str, num_questions: int = 3, category: str = "AI生成") -> list:
-        """PDFドキュメントからFAQを自動生成"""
+        """PDFドキュメントからFAQを自動生成（セクション分割アプローチ）"""
         try:
             import requests
             import json
@@ -709,6 +709,18 @@ class FAQSystem:
             if not pdf_content:
                 print(f"PDFの読み込みに失敗: {pdf_path}")
                 return []
+
+            print(f"[DEBUG] PDF全体の文字数: {len(pdf_content)}")
+
+            # PDFを num_questions 個のセクションに分割
+            section_size = len(pdf_content) // num_questions
+            sections = []
+            for i in range(num_questions):
+                start = i * section_size
+                end = start + section_size if i < num_questions - 1 else len(pdf_content)
+                section_text = pdf_content[start:end]
+                sections.append(section_text)
+                print(f"[DEBUG] セクション{i+1}: {len(section_text)}文字 ({start}~{end})")
 
             # 既存のFAQと承認待ちQ&Aの両方をチェック（重複を避けるため）
             existing_questions = [faq['question'] for faq in self.faq_data]
@@ -738,62 +750,48 @@ class FAQSystem:
             print(f"[DEBUG] 重複チェック対象 - 既存FAQ: {len(existing_questions)}件, 承認待ち: {len(pending_questions)}件")
             print(f"[DEBUG] ユニークな既存質問: {len(unique_questions)}件")
 
-            # プロンプト作成
-            prompt = f"""
+            # 各セクションから1つずつFAQを生成
+            all_faqs = []
+            headers = {
+                'Content-Type': 'application/json',
+                'x-api-key': api_key,
+                'anthropic-version': '2023-06-01'
+            }
+
+            for section_idx, section_text in enumerate(sections):
+                print(f"\n[DEBUG] セクション{section_idx + 1}/{len(sections)}からFAQ生成中...")
+
+                # セクション専用のプロンプト作成
+                prompt = f"""
 あなたはアメリカビザ専門のFAQシステムのコンテンツ生成エキスパートです。
 
 {existing_context}
 
 【タスク】
-上記の★既存質問と意味が重複しない、完全に異なるトピックのFAQを以下のPDFドキュメントから{num_questions}個生成してください。
+上記の★既存質問と意味が重複しない、以下のPDFセクションから**厳密に1個だけ**FAQを生成してください。
 
-**絶対厳守 - 多様性**:
-- 生成する{num_questions}個のFAQは、互いに全く異なるトピックでなければなりません
-- 同じセクションから複数の質問を生成してはいけません
-- PDFの最初から最後まで、まんべんなく異なる箇所から質問を選んでください
-- 類似した概念（例: ビザAとビザB）についての質問も避けてください
-
-【ソースドキュメント】
-{pdf_content[:20000]}  # トークン制限を考慮（第2章全体をカバー）
+【このセクションのドキュメント】
+{section_text[:8000]}
 
 【生成要件】
-1. **絶対厳守**: PDFドキュメントに明示的に記載されている内容**のみ**からFAQを生成すること
-   - PDFに記載がないビザの種類（H-1B、L-1、E-2、O-1など）の詳細については生成しない
-   - PDFに記載がない申請手続きや要件については生成しない
-   - あなたの一般知識や推測は一切使用しない
-   - 「PDFには記載がありません」「詳細は公式情報を確認してください」のような回答不可能なFAQは絶対に生成しないこと
-2. **絶対厳守**: 上記の★既存質問を一つ一つ確認し、それらと意味が重複する質問は絶対に生成しないこと
-3. **絶対厳守**: 必ず{num_questions}個のFAQを生成してください。少なく生成することは許されません
-4. PDFに記載されている具体的な内容からのみ質問を作成すること
-   - 例: PDFに「オーバーステイが180日を超えると3年間入国できない」と書かれていれば生成可能
-   - 例: PDFに「H-1Bビザ」という単語があっても、その詳細が書かれていなければH-1Bに関するFAQは生成しない
+1. **絶対厳守**: このPDFセクションに明示的に記載されている内容**のみ**からFAQを生成すること
+2. **絶対厳守**: 上記の★既存質問と意味が重複する質問は絶対に生成しないこと
+3. **絶対厳守**: 必ず**1個だけ**FAQを生成してください
+4. このセクションに記載されている具体的な内容からのみ質問を作成すること
 5. 既存質問と完全に異なるトピックや、明確に異なる側面を扱う質問を生成すること
 6. 実用的で具体的な質問を作成する
 7. 日本人がよく聞きそうな質問にする
 8. 回答は正確で詳細、かつ分かりやすい日本語で
 9. 専門用語には適切な説明を加える
-10. **回答できない質問は生成しない**: PDFに十分な情報がないトピックは避け、確実に回答できる質問のみを生成すること
+10. **回答できない質問は生成しない**: セクションに十分な情報があるトピックのみを選ぶこと
 
 【生成禁止の例】
-- PDFに詳細が書かれていない特定のビザ（H-1B、L-1、E-2、O-1など）の申請要件や手続き
-- PDFに記載がない投資額、推薦状の数、学歴要件などの具体的な数値
-- PDFに記載がない面接の質問内容や準備方法
-- PDFの範囲外の一般的なビザ知識
+- セクションに詳細が書かれていない特定のビザの申請要件や手続き
+- セクションに記載がない具体的な数値や要件
 - **「PDFには記載がありません」で終わるような回答不可能な質問**
 
-【重要な注意事項】
-- PDFドキュメントに記載されている事実のみを使用してください
-- 一般的なビザ知識や外部情報を追加しないでください
-- **回答できない質問は生成せず、回答可能な別のトピックを選んでください**
-- **必ず{num_questions}個の有効なFAQを生成してください**
-
 【出力形式】
-以下のJSON配列形式でFAQを出力してください（最大{num_questions}個）：
-
-**重要なJSON記述ルール**:
-1. JSONの値内では改行文字を使用せず、すべて1行で記述してください
-2. 強調のための引用符（"入国"、"滞在"など）は使用せず、通常の文として記述してください
-3. 長い回答も改行せずにスペースで区切ってください
+以下のJSON配列形式で**1個だけ**FAQを出力してください：
 
 [
   {{
@@ -801,188 +799,466 @@ class FAQSystem:
     "answer": "詳細で実用的な回答文（改行や引用符を使わず1行で記述）",
     "keywords": "関連キーワード1;関連キーワード2;関連キーワード3",
     "category": "{category}"
-  }},
-  ...
+  }}
 ]
 
-JSON形式のみを出力し、説明文は不要です。
+JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成してください。
 """
 
-            headers = {
-                'Content-Type': 'application/json',
-                'x-api-key': api_key,
-                'anthropic-version': '2023-06-01'
-            }
+                data = {
+                    'model': 'claude-3-haiku-20240307',
+                    'max_tokens': 2048,
+                    'temperature': 0.8,
+                    'messages': [
+                        {
+                            'role': 'user',
+                            'content': prompt
+                        }
+                    ]
+                }
 
-            data = {
-                'model': 'claude-3-haiku-20240307',  # 動作確認済みのHaikuを使用
-                'max_tokens': 4096,
-                'temperature': 1.0,  # 多様性を最大化
-                'messages': [
-                    {
-                        'role': 'user',
-                        'content': prompt
-                    }
-                ]
-            }
+                json_data = json.dumps(data, ensure_ascii=False)
 
-            json_data = json.dumps(data, ensure_ascii=False)
+                # API呼び出し（リトライ付き）
+                max_retries = 3
+                retry_delay = 5
+                response = None
 
-            # リトライロジック（529エラー対応）
-            max_retries = 3
-            retry_delay = 5  # 秒
+                for attempt in range(max_retries):
+                    response = requests.post(
+                        'https://api.anthropic.com/v1/messages',
+                        headers=headers,
+                        data=json_data.encode('utf-8'),
+                        timeout=60
+                    )
 
-            for attempt in range(max_retries):
-                response = requests.post(
-                    'https://api.anthropic.com/v1/messages',
-                    headers=headers,
-                    data=json_data.encode('utf-8'),
-                    timeout=60
-                )
-
-                if response.status_code == 200:
-                    break
-                elif response.status_code == 529 and attempt < max_retries - 1:
-                    print(f"[WARNING] Claude API過負荷 (529) - {attempt + 1}/{max_retries}回目、{retry_delay}秒後にリトライ...")
-                    import time
-                    time.sleep(retry_delay)
-                    retry_delay *= 2  # 指数バックオフ
-                else:
-                    break
-
-            if response.status_code == 200:
-                result = response.json()
-                content = result['content'][0]['text']
-                print(f"[DEBUG] Claude FAQ生成成功")
-                print(f"[DEBUG] Claude応答の最初の500文字: {content[:500]}")
-
-                # JSON部分を抽出
-                import re
-                # JSONブロックを探す（```json ... ``` の形式も考慮）
-                json_match = re.search(r'```json\s*(\[.*?\])\s*```', content, re.DOTALL)
-                if not json_match:
-                    json_match = re.search(r'\[.*\]', content, re.DOTALL)
-                    if json_match:
-                        json_str = json_match.group()
+                    if response.status_code == 200:
+                        break
+                    elif response.status_code == 529 and attempt < max_retries - 1:
+                        print(f"[WARNING] Claude API過負荷 (529) - {attempt + 1}/{max_retries}回目、{retry_delay}秒後にリトライ...")
+                        import time
+                        time.sleep(retry_delay)
+                        retry_delay *= 2
                     else:
-                        json_str = None
-                else:
-                    json_str = json_match.group(1)
+                        break
 
-                if json_str:
-                    print(f"[DEBUG] 抽出したJSON（最初の300文字）: {json_str[:300]}")
-                    try:
-                        # JSON文字列のクリーニング
-                        import unicodedata
+                if response and response.status_code == 200:
+                    result = response.json()
+                    content = result['content'][0]['text']
+                    print(f"[DEBUG] セクション{section_idx + 1} FAQ生成成功")
+                    print(f"[DEBUG] Claude応答の最初の300文字: {content[:300]}")
 
-                        # ステップ1: 全ての制御文字を除去（改行・タブ含む）
-                        cleaned_json = ''.join(
-                            char if char in '{}[]":, ' or not unicodedata.category(char).startswith('C')
-                            else ' '
-                            for char in json_str
-                        )
+                    # JSON部分を抽出
+                    import re
+                    import unicodedata
+                    # JSONブロックを探す（```json ... ``` の形式も考慮）
+                    json_match = re.search(r'```json\s*(\[.*?\])\s*```', content, re.DOTALL)
+                    if not json_match:
+                        json_match = re.search(r'\[.*\]', content, re.DOTALL)
+                        if json_match:
+                            json_str = json_match.group()
+                        else:
+                            json_str = None
+                    else:
+                        json_str = json_match.group(1)
 
-                        # ステップ2: 最もシンプルなアプローチ - json.decoder.JSONDecodeError を処理
-                        # まず通常のJSONパースを試み、失敗したら値内のクォートを置換
-                        print(f"[DEBUG] クリーニング後のJSON（最初の300文字）: {cleaned_json[:300]}")
-
+                    if json_str:
+                        print(f"[DEBUG] 抽出したJSON（最初の300文字）: {json_str[:300]}")
                         try:
-                            faqs = json.loads(cleaned_json)
-                        except json.JSONDecodeError as json_err:
-                            print(f"[DEBUG] 初回JSONパース失敗: {json_err}")
-                            print(f"[DEBUG] JSON値内のクォートを修正して再試行...")
+                            # JSON文字列のクリーニング
+                            cleaned_json = ''.join(
+                                char if char in '{}[]":, ' or not unicodedata.category(char).startswith('C')
+                                else ' '
+                                for char in json_str
+                            )
 
-                            # 値内のダブルクォートを全てシングルクォートに置換
-                            # 簡易的な方法: JSON構造外のクォートは少ないと仮定
-                            # ": " の後から次の " までの間にある " を ' に置換
-                            import re
+                            print(f"[DEBUG] クリーニング後のJSON（最初の300文字）: {cleaned_json[:300]}")
 
-                            def replace_inner_quotes(text):
-                                """JSON値内のダブルクォートをシングルクォートに置換"""
-                                result = []
-                                i = 0
-                                while i < len(text):
-                                    # ": " パターンを探す
-                                    if i < len(text) - 3 and text[i:i+3] == '": ':
-                                        result.append(text[i:i+3])
-                                        i += 3
-                                        # 次のダブルクォートまでの値部分を処理
-                                        if i < len(text) and text[i] == '"':
-                                            result.append('"')
+                            try:
+                                section_faqs = json.loads(cleaned_json)
+                            except json.JSONDecodeError as json_err:
+                                print(f"[DEBUG] 初回JSONパース失敗: {json_err}")
+                                print(f"[DEBUG] JSON値内のクォートを修正して再試行...")
+
+                                def replace_inner_quotes(text):
+                                    """JSON値内のダブルクォートをシングルクォートに置換"""
+                                    result = []
+                                    i = 0
+                                    while i < len(text):
+                                        if i < len(text) - 3 and text[i:i+3] == '": ':
+                                            result.append(text[i:i+3])
+                                            i += 3
+                                            if i < len(text) and text[i] == '"':
+                                                result.append('"')
+                                                i += 1
+                                                value_chars = []
+                                                while i < len(text):
+                                                    if text[i] == '"' and (i + 1 >= len(text) or text[i+1] in ',\n}]'):
+                                                        result.append(''.join(value_chars).replace('"', "'"))
+                                                        result.append('"')
+                                                        i += 1
+                                                        break
+                                                    else:
+                                                        value_chars.append(text[i])
+                                                        i += 1
+                                        else:
+                                            result.append(text[i])
                                             i += 1
-                                            value_chars = []
-                                            while i < len(text):
-                                                if text[i] == '"' and (i + 1 >= len(text) or text[i+1] in ',\n}]'):
-                                                    # 値の終了
-                                                    result.append(''.join(value_chars).replace('"', "'"))
-                                                    result.append('"')
-                                                    i += 1
-                                                    break
-                                                else:
-                                                    value_chars.append(text[i])
-                                                    i += 1
-                                    else:
-                                        result.append(text[i])
-                                        i += 1
-                                return ''.join(result)
+                                    return ''.join(result)
 
-                            cleaned_json = replace_inner_quotes(cleaned_json)
-                            print(f"[DEBUG] クォート修正後のJSON（最初の300文字）: {cleaned_json[:300]}")
-                            faqs = json.loads(cleaned_json)
+                                cleaned_json = replace_inner_quotes(cleaned_json)
+                                print(f"[DEBUG] クォート修正後のJSON（最初の300文字）: {cleaned_json[:300]}")
+                                section_faqs = json.loads(cleaned_json)
 
-                        print(f"[DEBUG] {len(faqs)}件のFAQを生成しました")
+                            # セクションから生成されたFAQを処理（通常は1個）
+                            for faq in section_faqs:
+                                current_question = faq.get('question', '')
+                                current_answer = faq.get('answer', '')
 
-                        # 意味的重複チェック（生成されたFAQ同士の類似度チェック）
-                        print(f"[DEBUG] 意味的重複チェックを開始...")
-                        filtered_faqs = []
-                        similarity_threshold = 0.40  # 40%以上の類似度は重複とみなす（バリエーション許容）
+                                # 回答不可能な質問を除外
+                                answer_lower = current_answer.lower()
+                                if (('記載がありません' in answer_lower or '記載されていません' in answer_lower) and
+                                    ('pdf' in answer_lower or 'ドキュメント' in answer_lower)) or \
+                                   '公式の情報源を参照' in current_answer or '公式情報を確認' in current_answer:
+                                    print(f"[DEBUG] セクション{section_idx + 1} FAQをスキップ（回答不可能）: {current_question[:50]}...")
+                                    continue
 
-                        for i, faq in enumerate(faqs):
-                            is_duplicate = False
-                            current_question = faq.get('question', '')
-                            current_answer = faq.get('answer', '')
+                                # 重複チェック
+                                is_duplicate = False
+                                similarity_threshold = 0.40
 
-                            # 「PDFには記載がありません」のような回答不可能な質問を除外
-                            answer_lower = current_answer.lower()
-                            if (('記載がありません' in answer_lower or '記載されていません' in answer_lower) and ('pdf' in answer_lower or 'ドキュメント' in answer_lower)) or '公式の情報源を参照' in current_answer or '公式情報を確認' in current_answer or '公式の情報を確認' in current_answer:
-                                print(f"[DEBUG] FAQ {i+1} をスキップ（回答不可能）: {current_question[:50]}...")
-                                continue
-
-                            # 既存のFAQおよび承認待ちFAQとの類似度チェック
-                            for existing_q in unique_questions:
-                                similarity = self.calculate_similarity(current_question, existing_q)
-                                if similarity >= similarity_threshold:
-                                    print(f"[DEBUG] 重複検出（既存と類似 {similarity:.2f}）: {current_question[:40]}... ≈ {existing_q[:40]}...")
-                                    is_duplicate = True
-                                    break
-
-                            # 今回生成したFAQ同士の類似度チェック
-                            if not is_duplicate:
-                                for already_added in filtered_faqs:
-                                    similarity = self.calculate_similarity(current_question, already_added.get('question', ''))
+                                # 既存FAQとの重複チェック
+                                for existing_q in unique_questions:
+                                    similarity = self.calculate_similarity(current_question, existing_q)
                                     if similarity >= similarity_threshold:
-                                        print(f"[DEBUG] 重複検出（生成内で類似 {similarity:.2f}）: {current_question[:40]}... ≈ {already_added.get('question', '')[:40]}...")
+                                        print(f"[DEBUG] セクション{section_idx + 1} FAQをスキップ（既存と重複 {similarity:.2f}）: {current_question[:40]}...")
                                         is_duplicate = True
                                         break
 
-                            if not is_duplicate:
-                                filtered_faqs.append(faq)
-                                print(f"[DEBUG] FAQ {i+1} を追加: {current_question[:50]}...")
-                            else:
-                                print(f"[DEBUG] FAQ {i+1} をスキップ（重複）: {current_question[:50]}...")
+                                # これまでに生成したFAQとの重複チェック
+                                if not is_duplicate:
+                                    for already_added in all_faqs:
+                                        similarity = self.calculate_similarity(current_question, already_added.get('question', ''))
+                                        if similarity >= similarity_threshold:
+                                            print(f"[DEBUG] セクション{section_idx + 1} FAQをスキップ（生成済みと重複 {similarity:.2f}）: {current_question[:40]}...")
+                                            is_duplicate = True
+                                            break
 
-                        print(f"[DEBUG] 意味的重複チェック完了: {len(faqs)}件 → {len(filtered_faqs)}件")
+                                if not is_duplicate:
+                                    all_faqs.append(faq)
+                                    unique_questions.append(current_question)  # 次回の重複チェック用に追加
+                                    print(f"[DEBUG] セクション{section_idx + 1} FAQを追加: {current_question[:50]}...")
+                                    print(f"[DEBUG] 現在のFAQ総数: {len(all_faqs)}/{num_questions}")
 
-                        # 10件に満たない場合は追加生成（最大2回まで再試行）
-                        retry_count = 0
-                        max_retries = 2
-                        while len(filtered_faqs) < num_questions and retry_count < max_retries:
-                            retry_count += 1
-                            needed = num_questions - len(filtered_faqs)
-                            print(f"[DEBUG] 不足しているため追加生成: 現在{len(filtered_faqs)}件、あと{needed}件必要（再試行{retry_count}/{max_retries}）")
+                        except json.JSONDecodeError as e:
+                            print(f"[ERROR] セクション{section_idx + 1} JSONパースエラー: {e}")
+                            print(f"[ERROR] パース失敗したJSON: {json_str[:500]}")
+                            continue
+                    else:
+                        print(f"[ERROR] セクション{section_idx + 1} JSONを抽出できませんでした")
+                        continue
+                else:
+                    print(f"[ERROR] セクション{section_idx + 1} API呼び出し失敗 - ステータス: {response.status_code if response else 'None'}")
+                    continue
 
-                            # 既に生成した質問をunique_questionsに追加して重複を避ける
-                            for faq in filtered_faqs:
+                # セクション間でレート制限を回避するため少し待機
+                if section_idx < len(sections) - 1:
+                    import time
+                    time.sleep(1)
+
+            # すべてのセクション処理完了後
+            print(f"\n[DEBUG] セクション分割アプローチ完了: {len(all_faqs)}件のFAQ生成")
+
+            # 生成数が足りない場合の警告
+            if len(all_faqs) < num_questions:
+                print(f"[WARNING] 目標FAQ数{num_questions}件に対して{len(all_faqs)}件のみ生成されました。")
+                print(f"[WARNING] 重複または回答不可能な質問が除外された可能性があります。")
+
+            # 生成したFAQを履歴に保存して返す
+            if all_faqs:
+                self._save_to_generation_history(all_faqs)
+            return all_faqs
+
+        except Exception as e:
+            print(f"[ERROR] FAQ生成エラー: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+
+    def _mock_faq_generation(self, num_questions: int, category: str) -> list:
+        """Claude API未設定時のモック FAQ 生成"""
+        # 既存のFAQと承認待ちQ&Aを取得して重複を避ける
+        existing_questions = [faq['question'] for faq in self.faq_data]
+        self.load_pending_qa()
+        pending_questions = [item['question'] for item in self.pending_qa if 'question' in item]
+        all_existing_questions = existing_questions + pending_questions
+        print(f"[DEBUG] モック生成 - 重複チェック対象: 既存FAQ {len(existing_questions)}件, 承認待ち {len(pending_questions)}件")
+
+        base_mock_faqs = [
+            {
+                'question': 'H-1Bビザの申請に必要な最低学歴要件は何ですか？',
+                'answer': 'H-1Bビザの申請には、通常4年制大学の学士号以上の学位が必要です。ただし、学位がない場合でも、3年間の実務経験が1年間の大学教育に相当するとみなされ、合計12年間の実務経験があれば申請可能な場合があります。',
+                'keywords': 'H-1B;学歴要件;学士号;実務経験',
+                'category': category
+            },
+            {
+                'question': 'アメリカビザ面接で聞かれる一般的な質問は何ですか？',
+                'answer': '面接では以下の質問がよく聞かれます：1)渡米目的、2)滞在期間、3)職歴や学歴、4)家族構成、5)帰国予定、6)経済状況など。回答は簡潔かつ正直に、必要な書類を準備して面接に臨むことが重要です。',
+                'keywords': '面接;質問;準備;書類',
+                'category': category
+            },
+            {
+                'question': 'ESTA申請が拒否された場合はどうすればよいですか？',
+                'answer': 'ESTA申請が拒否された場合、観光ビザ（B-2）または商用ビザ（B-1）を大使館で申請する必要があります。拒否理由を確認し、適切な書類を準備して面接予約を取ってください。ESTA拒否歴がある場合は面接で正直に説明することが重要です。',
+                'keywords': 'ESTA;拒否;観光ビザ;B-1;B-2;面接',
+                'category': category
+            },
+            {
+                'question': 'アメリカでの滞在期間を延長することは可能ですか？',
+                'answer': 'はい、可能です。滞在期限の45日前までにUSCIS（米国移民局）にForm I-539を提出して延長申請を行います。ただし、ESTA（ビザ免除プログラム）で入国した場合は延長できません。延長が承認されるには正当な理由と十分な資金証明が必要です。',
+                'keywords': '滞在延長;I-539;USCIS;ESTA;資金証明',
+                'category': category
+            },
+            {
+                'question': '学生ビザ（F-1）から就労ビザ（H-1B）への変更手続きは？',
+                'answer': 'F-1からH-1Bへの変更は「ステータス変更」申請で行います。雇用主がH-1B申請を行い、同時にUSCISにForm I-129とI-539を提出します。OPT期間中に申請することが多く、H-1Bの抽選に当選し承認されれば、アメリカを出国することなくステータス変更が可能です。',
+                'keywords': 'F-1;H-1B;ステータス変更;I-129;I-539;OPT',
+                'category': category
+            },
+            {
+                'question': 'B-1/B-2ビザの有効期間と滞在期間の違いは何ですか？',
+                'answer': 'ビザの有効期間は入国可能な期間、滞在期間は実際にアメリカに滞在できる期間です。B-1/B-2ビザは通常10年有効ですが、一回の滞在は最大6ヶ月までです。滞在期間はI-94で確認でき、この期間を超える場合は延長申請が必要です。',
+                'keywords': 'B-1;B-2;有効期間;滞在期間;I-94',
+                'category': category
+            },
+            {
+                'question': 'グリーンカード申請中にアメリカを出国できますか？',
+                'answer': 'グリーンカード申請中の出国は可能ですが、注意が必要です。調整申請（I-485）中の場合、事前許可（Advance Parole）の取得が必要です。許可なく出国すると申請が放棄されたとみなされる場合があります。',
+                'keywords': 'グリーンカード;I-485;Advance Parole;出国',
+                'category': category
+            },
+            {
+                'question': 'L-1ビザの申請要件と取得までの期間は？',
+                'answer': 'L-1ビザは企業内転勤者向けビザで、海外関連会社で1年以上勤務していることが要件です。L-1Aは管理職・役員向け、L-1Bは専門知識を持つ社員向けです。申請から取得まで通常3-6ヶ月かかります。',
+                'keywords': 'L-1;企業内転勤;L-1A;L-1B;専門知識',
+                'category': category
+            },
+            {
+                'question': 'E-2投資家ビザの最低投資額はいくらですか？',
+                'answer': 'E-2ビザに法定最低投資額はありませんが、実質的に事業を運営できる「相当額」の投資が必要です。一般的に15-20万ドル以上が目安とされます。投資額は事業の性質や規模により異なり、投資の実質性と継続性が重要です。',
+                'keywords': 'E-2;投資家ビザ;投資額;事業運営',
+                'category': category
+            },
+            {
+                'question': 'O-1ビザ申請時の推薦状は何通必要ですか？',
+                'answer': 'O-1ビザには最低8通の推薦状が推奨されています。業界の専門家、同僚、クライアントからの推薦状が効果的です。推薦者の資格と申請者との関係を明確に示し、具体的な功績や能力について詳述することが重要です。',
+                'keywords': 'O-1;推薦状;専門家;功績;能力',
+                'category': category
+            }
+        ]
+
+        # 重複を避けながらFAQを生成
+        def is_similar_question(question, existing_questions):
+            """簡単な重複チェック（キーワードベース）"""
+            question_lower = question.lower()
+            for existing in existing_questions:
+                existing_lower = existing.lower()
+                # キーワードベースの簡易マッチング
+                if (any(word in existing_lower for word in question_lower.split() if len(word) > 2) and
+                    len(set(question_lower.split()) & set(existing_lower.split())) >= 2):
+                    return True
+            return False
+
+        # 要求された数だけFAQを生成（重複を避けながら）
+        mock_faqs = []
+        print(f"[DEBUG] モック生成要求数: {num_questions}, 基本FAQ数: {len(base_mock_faqs)}")
+
+        for i in range(num_questions):
+            base_faq = base_mock_faqs[i % len(base_mock_faqs)].copy()
+
+            # 重複チェック
+            if not is_similar_question(base_faq['question'], all_existing_questions):
+                if i >= len(base_mock_faqs):
+                    # ベースを超える場合は質問を少し変更
+                    base_faq['question'] = f"【追加生成】{base_faq['question']}"
+                    base_faq['answer'] = f"【モック生成】{base_faq['answer']}"
+                mock_faqs.append(base_faq)
+                print(f"[DEBUG] モックFAQ{len(mock_faqs)}生成: {base_faq['question'][:30]}...")
+            else:
+                print(f"[DEBUG] 重複回避: {base_faq['question'][:30]}... をスキップ")
+
+        # 足りない場合は追加のバリエーション生成
+        while len(mock_faqs) < num_questions:
+            additional_faq = {
+                'question': f'【モック生成{len(mock_faqs)+1}】アメリカビザに関する質問です',
+                'answer': f'【モック生成】これはテスト用の自動生成された回答です（{len(mock_faqs)+1}番目）。実際のビザ情報については専門家にご相談ください。',
+                'keywords': f'モック;テスト;{category}',
+                'category': category
+            }
+            mock_faqs.append(additional_faq)
+            print(f"[DEBUG] 追加生成FAQ{len(mock_faqs)}: {additional_faq['question'][:30]}...")
+
+        print(f"[DEBUG] 最終生成数: {len(mock_faqs)}")
+        # 生成したFAQを履歴に保存
+        if mock_faqs:
+            self._save_to_generation_history(mock_faqs)
+        return mock_faqs
+
+
+def admin_mode(faq):
+    """管理者モード"""
+    while True:
+        print("\n=== FAQ管理モード ===")
+        print("1. 全FAQ表示")
+        print("2. FAQ追加")
+        print("3. FAQ編集")
+        print("4. FAQ削除")
+        print("5. 保存")
+        print("6. ユーザーモードに戻る")
+
+        choice = input("\n選択 (1-6): ").strip()
+
+        if choice == '1':
+            faq.show_all_faqs()
+        elif choice == '2':
+            question = input("\n質問を入力: ")
+            answer = input("回答を入力: ")
+            if question.strip() and answer.strip():
+                faq.add_faq(question, answer)
+                print("FAQを追加しました。")
+            else:
+                print("質問と回答の両方を入力してください。")
+        elif choice == '3':
+            faq.show_all_faqs()
+            try:
+                index = int(input("\n編集するFAQ番号: ")) - 1
+                if 0 <= index < len(faq.faq_data):
+                    current_faq = faq.faq_data[index]
+                    print(f"\n現在の質問: {current_faq['question']}")
+                    print(f"\n現在の回答: {current_faq['answer']}")
+
+                    new_question = input("\n新しい質問 (変更しない場合は空欄): ")
+                    new_answer = input("新しい回答 (変更しない場合は空欄): ")
+
+                    if faq.edit_faq(index, new_question if new_question else None, new_answer if new_answer else None):
+                        print("FAQを更新しました。")
+                else:
+                    print("無効な番号です。")
+            except ValueError:
+                print("数字を入力してください。")
+        elif choice == '4':
+            faq.show_all_faqs()
+            try:
+                index = int(input("\n削除するFAQ番号: ")) - 1
+                if faq.delete_faq(index):
+                    print("FAQを削除しました。")
+                else:
+                    print("無効な番号です。")
+            except ValueError:
+                print("数字を入力してください。")
+        elif choice == '5':
+            faq.save_faq_data()
+        elif choice == '6':
+            break
+        else:
+            print("1-6の数字を入力してください。")
+
+def main():
+    # FAQシステムを初期化
+    faq = FAQSystem('faq_data.csv')
+
+    print("=== ビザ申請代行 FAQ自動回答システム ===")
+    print("質問を入力してください（'quit'で終了、'admin'で管理モード）")
+    print("-" * 50)
+
+    while True:
+        user_input = input("\n質問: ")
+
+        if user_input.lower() in ['quit', 'exit', 'q']:
+            print("システムを終了します。")
+            break
+        elif user_input.lower() == 'admin':
+            admin_mode(faq)
+            continue
+
+        if not user_input.strip():
+            print("質問を入力してください。")
+            continue
+
+        # 回答を検索
+        result, needs_confirmation = faq.get_best_answer(user_input)
+
+        if needs_confirmation:
+            # 確認が必要な場合
+            print(f"\nご質問は「{result['question']}」ということでしょうか？")
+            print("1. はい")
+            print("2. いいえ")
+            print("3. 管理モード（この回答を編集）")
+
+            while True:
+                choice = input("\n選択 (1/2/3): ").strip()
+
+                if choice == '1':
+                    # はいの場合、回答を表示
+                    answer = faq.format_answer(result)
+                    print(f"\n{answer}")
+                    break
+                elif choice == '2':
+                    # いいえの場合、再質問を促す
+                    print("\n申し訳ございません。別の言い方で質問していただけますでしょうか。")
+                    break
+                elif choice == '3':
+                    # 管理モードに入る
+                    print(f"\n現在の質問: {result['question']}")
+                    print(f"現在の回答: {result['answer']}")
+
+                    # 該当するFAQのインデックスを見つける
+                    for i, faq_item in enumerate(faq.faq_data):
+                        if faq_item['question'] == result['question']:
+                            new_question = input("\n新しい質問 (変更しない場合は空欄): ")
+                            new_answer = input("新しい回答 (変更しない場合は空欄): ")
+
+                            if faq.edit_faq(i, new_question if new_question else None, new_answer if new_answer else None):
+                                print("FAQを更新しました。")
+                                faq.save_faq_data()
+                            break
+                    break
+                else:
+                    print("1、2、または 3 を入力してください。")
+        else:
+            # 確認不要の場合、直接回答を表示
+            print(f"\n{result}")
+
+        print("-" * 50)
+
+def find_similar_faqs(faq_system, question: str, threshold: float = 0.6, max_results: int = 5) -> list:
+    """既存のFAQから類似する質問を検出"""
+    similar_faqs = []
+
+    for faq in faq_system.faq_data:
+        # 文字列類似度とキーワードスコアを組み合わせて計算
+        similarity = faq_system.calculate_similarity(question, faq['question'])
+        keyword_score = faq_system.get_keyword_score(question, faq['question'], faq.get('keywords', ''))
+
+        # 総合スコア（類似度70%、キーワード30%の重み付け）
+        total_score = similarity * 0.7 + keyword_score * 0.3
+
+        if total_score >= threshold:
+            similar_faqs.append({
+                'question': faq['question'],
+                'answer': faq['answer'],
+                'keywords': faq.get('keywords', ''),
+                'category': faq.get('category', ''),
+                'similarity_score': round(total_score, 3)
+            })
+
+    # スコー順でソートして上位結果を返す
+    similar_faqs.sort(key=lambda x: x['similarity_score'], reverse=True)
+    return similar_faqs[:max_results]
+
+
+if __name__ == "__main__":
+    main()
                                 q = faq.get('question', '')
                                 if q not in unique_questions:
                                     unique_questions.append(q)
