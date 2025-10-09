@@ -815,8 +815,8 @@ JSON形式のみを出力し、説明文は不要です。
             }
 
             data = {
-                'model': 'claude-3-haiku-20240307',  # 動作確認済みモデル
-                'max_tokens': 4096,  # Haikuの最大値
+                'model': 'claude-3-5-sonnet-20241022',  # Sonnetで多様性向上
+                'max_tokens': 4096,
                 'temperature': 1.0,  # 多様性を最大化
                 'messages': [
                     {
@@ -1043,7 +1043,7 @@ JSON形式のみを出力し、説明文は不要です。
 """
 
                             retry_data = {
-                                'model': 'claude-3-haiku-20240307',
+                                'model': 'claude-3-5-sonnet-20241022',  # Sonnetで多様性向上
                                 'max_tokens': 4096,
                                 'temperature': 1.0,
                                 'messages': [
