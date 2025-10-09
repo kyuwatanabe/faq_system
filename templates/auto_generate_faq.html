@@ -273,11 +273,19 @@
             statusDiv.className = 'generate-status loading';
             statusDiv.textContent = 'FAQ生成中です（第2章.pdfから10個生成）。しばらくお待ちください...';
 
+            // タイムアウト設定（5分 = 300秒）
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 300000);
+
             fetch('/admin/auto_generate', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                signal: controller.signal
             })
-            .then(response => response.json())
+            .then(response => {
+                clearTimeout(timeoutId);
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     statusDiv.className = 'generate-status success';
@@ -288,8 +296,13 @@
                 }
             })
             .catch(error => {
+                clearTimeout(timeoutId);
                 statusDiv.className = 'generate-status error';
-                statusDiv.textContent = `エラー: ${error.message}`;
+                if (error.name === 'AbortError') {
+                    statusDiv.textContent = 'エラー: FAQの生成に時間がかかりすぎています。サーバーで処理中の可能性があるため、承認待ちFAQ画面で確認してください。';
+                } else {
+                    statusDiv.textContent = `エラー: FAQの生成に失敗しました（${error.message}）`;
+                }
             })
             .finally(() => {
                 // ボタンを再有効化
