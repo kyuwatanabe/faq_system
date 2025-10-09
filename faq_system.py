@@ -950,7 +950,8 @@ JSON形式のみを出力し、説明文は不要です。
                             current_answer = faq.get('answer', '')
 
                             # 「PDFには記載がありません」のような回答不可能な質問を除外
-                            if 'pdfには記載がありません' in current_answer.lower() or 'pdfdokumento' in current_answer.lower() or '公式の情報源を参照' in current_answer or '公式情報を確認' in current_answer:
+                            answer_lower = current_answer.lower()
+                            if ('記載がありません' in answer_lower and ('pdf' in answer_lower or 'ドキュメント' in answer_lower)) or '公式の情報源を参照' in current_answer or '公式情報を確認' in current_answer or '公式の情報を確認' in current_answer:
                                 print(f"[DEBUG] FAQ {i+1} をスキップ（回答不可能）: {current_question[:50]}...")
                                 continue
 
@@ -1115,7 +1116,9 @@ JSON形式のみを出力し、説明文は不要です。
                                     add_answer = add_faq.get('answer', '')
 
                                     # 回答不可能チェック
-                                    if 'pdfには記載がありません' in add_answer.lower() or '公式の情報源を参照' in add_answer or '公式情報を確認' in add_answer:
+                                    add_answer_lower = add_answer.lower()
+                                    if ('記載がありません' in add_answer_lower and ('pdf' in add_answer_lower or 'ドキュメント' in add_answer_lower)) or '公式の情報源を参照' in add_answer or '公式情報を確認' in add_answer or '公式の情報を確認' in add_answer:
+                                        print(f"[DEBUG] 追加FAQスキップ（回答不可能）: {add_question[:50]}...")
                                         continue
 
                                     # 重複チェック
