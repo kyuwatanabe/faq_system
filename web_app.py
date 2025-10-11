@@ -161,7 +161,6 @@ def export_all():
     response.headers['Content-Type'] = 'application/zip'
     response.headers['Content-Disposition'] = f'attachment; filename=faq_system_backup_{timestamp}.zip'
 
-    print(f"[DEBUG] 統合バックアップ完了: {timestamp}")
     return response
 
 @app.route('/admin/export_pending', methods=['GET'])
@@ -197,7 +196,6 @@ def export_pending_faq():
     response.headers['Content-Type'] = 'text/csv; charset=utf-8'
     response.headers['Content-Disposition'] = f'attachment; filename=pending_faq_backup_{timestamp}.csv'
 
-    print(f"[DEBUG] 承認待ちFAQエクスポート完了: {len(faq_system.pending_qa)}件")
     return response
 
 @app.route('/admin/import_all', methods=['POST'])
@@ -429,7 +427,7 @@ def auto_generate_faqs():
     try:
         # デバッグモード: 第2章.pdfを固定で使用
         import os
-        DEBUG_MODE = True
+        DEBUG_MODE = False
 
         if DEBUG_MODE:
             print("[DEBUG] デバッグモード: 第2章.pdfを使用")
