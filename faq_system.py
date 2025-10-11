@@ -231,6 +231,28 @@ class FAQSystem:
             question2.lower()
         ).ratio()
 
+    def _extract_important_keywords(self, question: str) -> set:
+        """質問から重要なキーワードを抽出"""
+        # ビザ種類
+        visa_types = ['B-1', 'B-2', 'H-1B', 'H-2B', 'L-1', 'L-1A', 'L-1B', 'E-2', 'F-1', 'J-1', 'O-1', 'ESTA', 'I-94']
+        # 目的
+        purposes = ['商用', '観光', '就労', '学生', '研修', '投資', '報道', '外交']
+        # 国名
+        countries = ['イラン', 'イラク', '北朝鮮', 'シリア', 'スーダン', 'リビア', 'ソマリア', 'イエメン']
+        # その他の重要語
+        other_keywords = ['オーバーステイ', '不法滞在', 'ビザウェーバープログラム', '入国許可', '滞在期限', '有効期限']
+
+        all_keywords = visa_types + purposes + countries + other_keywords
+
+        found_keywords = set()
+        question_lower = question.lower()
+
+        for keyword in all_keywords:
+            if keyword.lower() in question_lower:
+                found_keywords.add(keyword.lower())
+
+        return found_keywords
+
     def search_faq(self, user_question: str, threshold: float = 0.3) -> List[Dict]:
         """ユーザーの質問に対して最適なFAQを検索"""
         if not user_question.strip():
@@ -689,7 +711,7 @@ class FAQSystem:
             }
 
     def generate_faqs_from_document(self, pdf_path: str, num_questions: int = 3, category: str = "AI生成") -> list:
-        """PDFドキュメントからFAQを自動生成（セクション分割アプローチ）"""
+        """PDFドキュメントからFAQを自動生成（ランダムウィンドウ方式）"""
         try:
             import requests
             import json
@@ -712,25 +734,54 @@ class FAQSystem:
 
             print(f"[DEBUG] PDF全体の文字数: {len(pdf_content)}")
 
-            # PDFを num_questions 個のセクションに分割
-            section_size = len(pdf_content) // num_questions
-            sections = []
-            for i in range(num_questions):
-                start = i * section_size
-                end = start + section_size if i < num_questions - 1 else len(pdf_content)
-                section_text = pdf_content[start:end]
-                sections.append(section_text)
-                print(f"[DEBUG] セクション{i+1}: {len(section_text)}文字 ({start}~{end})")
+            # 2段階ウィンドウ方式でPDFから抽出位置を決定
+            import random
+            question_window = 200   # 質問用: 狭い範囲（トピック選択用）
+            answer_window = 1500    # 回答用: 広い範囲（詳細回答生成用）
+            pdf_length = len(pdf_content)
+            max_start = max(0, pdf_length - answer_window)
 
-            # 既存のFAQと承認待ちQ&Aの両方をチェック（重複を避けるため）
+            # ランダムな開始位置を生成（100文字単位で、重複なし）
+            # 完全ランダムにnum_questions個の開始位置を選ぶ
+            possible_positions = list(range(0, max_start, 100))
+            if len(possible_positions) >= num_questions:
+                start_positions = random.sample(possible_positions, num_questions)
+            else:
+                # PDFが短い場合は可能な位置をすべて使用
+                start_positions = possible_positions
+
+            start_positions.sort()  # デバッグ用にソート
+
+            # 各位置について質問用と回答用の2つのウィンドウを作成
+            window_pairs = []
+            for i, random_start in enumerate(start_positions):
+                # 質問用の狭い範囲（回答用ウィンドウの中央付近）
+                q_start = random_start + (answer_window - question_window) // 2
+                q_end = q_start + question_window
+                question_text = pdf_content[q_start:q_end]
+
+                # 回答用の広い範囲
+                a_start = random_start
+                a_end = random_start + answer_window
+                answer_text = pdf_content[a_start:a_end]
+
+                window_pairs.append({
+                    'question_text': question_text,
+                    'answer_text': answer_text,
+                    'q_range': f"{q_start}~{q_end}",
+                    'a_range': f"{a_start}~{a_end}"
+                })
+                print(f"[DEBUG] ランダムウィンドウ{i+1}:")
+                print(f"  質問用: {len(question_text)}文字 (位置: {q_start}~{q_end})")
+                print(f"  回答用: {len(answer_text)}文字 (位置: {a_start}~{a_end})")
+
+            print(f"[DEBUG] 2段階ウィンドウ方式: {len(window_pairs)}個のウィンドウペアを生成")
+
+            # 既存のFAQのみをチェック（承認待ちは含めない）
             existing_questions = [faq['question'] for faq in self.faq_data]
 
-            # 承認待ちQ&Aも読み込んで追加
-            self.load_pending_qa()
-            pending_questions = [item['question'] for item in self.pending_qa if 'question' in item]
-
-            # 既存FAQと承認待ちのみを統合（履歴は使わない）
-            all_existing_questions = existing_questions + pending_questions
+            # 承認待ちは新規FAQ候補なので重複チェック対象から除外
+            all_existing_questions = existing_questions
 
             # 重複を除去して番号付きリストを作成
             unique_questions = []
@@ -747,7 +798,7 @@ class FAQSystem:
             else:
                 existing_context = "既存の質問はありません。"
 
-            print(f"[DEBUG] 重複チェック対象 - 既存FAQ: {len(existing_questions)}件, 承認待ち: {len(pending_questions)}件")
+            print(f"[DEBUG] 重複チェック対象 - 既存FAQ: {len(existing_questions)}件")
             print(f"[DEBUG] ユニークな既存質問: {len(unique_questions)}件")
 
             # 各セクションから1つずつFAQを生成
@@ -758,36 +809,45 @@ class FAQSystem:
                 'anthropic-version': '2023-06-01'
             }
 
-            for section_idx, section_text in enumerate(sections):
-                print(f"\n[DEBUG] セクション{section_idx + 1}/{len(sections)}からFAQ生成中...")
+            for window_idx, window_pair in enumerate(window_pairs):
+                print(f"\n[DEBUG] ランダムウィンドウ{window_idx + 1}/{len(window_pairs)}からFAQ生成中...")
 
-                # セクション専用のプロンプト作成
+                # 2段階ウィンドウ専用のプロンプト作成
                 prompt = f"""
 あなたはアメリカビザ専門のFAQシステムのコンテンツ生成エキスパートです。
 
 {existing_context}
 
 【タスク】
-上記の★既存質問と意味が重複しない、以下のPDFセクションから**厳密に1個だけ**FAQを生成してください。
+FAQを1個生成してください。**必ず以下の手順で生成すること**：
 
-【このセクションのドキュメント】
-{section_text[:8000]}
+**ステップ1: 質問の生成**
+以下の「質問生成範囲」から、1つの明確なトピックを選んで質問を作成してください。
+
+【質問生成範囲】（この{question_window}文字から1つのトピックを選ぶ）
+{window_pair['question_text']}
+
+**ステップ2: 回答の生成**
+ステップ1で作成した質問に対して、以下の「回答生成範囲」の情報を使って回答を作成してください。
+
+【回答生成範囲】（質問に答えるために、この{answer_window}文字から情報を探す）
+{window_pair['answer_text'][:3000]}
 
 【生成要件】
-1. **絶対厳守**: このPDFセクションに明示的に記載されている内容**のみ**からFAQを生成すること
-2. **絶対厳守**: 上記の★既存質問と意味が重複する質問は絶対に生成しないこと
-3. **絶対厳守**: 必ず**1個だけ**FAQを生成してください
-4. このセクションに記載されている具体的な内容からのみ質問を作成すること
-5. 既存質問と完全に異なるトピックや、明確に異なる側面を扱う質問を生成すること
-6. 実用的で具体的な質問を作成する
-7. 日本人がよく聞きそうな質問にする
-8. 回答は正確で詳細、かつ分かりやすい日本語で
-9. 専門用語には適切な説明を加える
-10. **回答できない質問は生成しない**: セクションに十分な情報があるトピックのみを選ぶこと
+1. **絶対厳守**: 上記の★既存質問と意味が重複する質問は絶対に生成しないこと
+2. **質問は必ず「質問生成範囲」から作成**すること
+3. **回答は必ず「回答生成範囲」から情報を取得**して作成すること
+4. 実用的で具体的な質問を作成する
+5. 日本人がよく聞きそうな質問にする
+6. **重要**: 回答は質問に直接答えることに焦点を当てる
+   - 質問が「〜は必要ですか？」なら、必要かどうかと理由だけを答える
+   - 質問が「〜とは何ですか？」なら、定義と要点だけを答える
+   - 料金、有効期間、手続き方法などは、質問で直接聞かれていない限り含めない
+7. 回答は簡潔で分かりやすい日本語で書く
+8. 専門用語には適切な説明を加える
 
 【生成禁止の例】
-- セクションに詳細が書かれていない特定のビザの申請要件や手続き
-- セクションに記載がない具体的な数値や要件
+- 回答生成範囲に十分な情報がないトピックの質問
 - **「PDFには記載がありません」で終わるような回答不可能な質問**
 
 【出力形式】
@@ -796,7 +856,7 @@ class FAQSystem:
 [
   {{
     "question": "具体的な質問文",
-    "answer": "詳細で実用的な回答文（改行や引用符を使わず1行で記述）",
+    "answer": "質問に直接答える簡潔な回答文（改行や引用符を使わず1行で記述）",
     "keywords": "関連キーワード1;関連キーワード2;関連キーワード3",
     "category": "{category}"
   }}
@@ -845,7 +905,7 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
                 if response and response.status_code == 200:
                     result = response.json()
                     content = result['content'][0]['text']
-                    print(f"[DEBUG] セクション{section_idx + 1} FAQ生成成功")
+                    print(f"[DEBUG] ランダムウィンドウ{window_idx + 1} FAQ生成成功")
                     print(f"[DEBUG] Claude応答の最初の300文字: {content[:300]}")
 
                     # JSON部分を抽出
@@ -920,54 +980,76 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
                                 if (('記載がありません' in answer_lower or '記載されていません' in answer_lower) and
                                     ('pdf' in answer_lower or 'ドキュメント' in answer_lower)) or \
                                    '公式の情報源を参照' in current_answer or '公式情報を確認' in current_answer:
-                                    print(f"[DEBUG] セクション{section_idx + 1} FAQをスキップ（回答不可能）: {current_question[:50]}...")
+                                    print(f"[DEBUG] ランダムウィンドウ{window_idx + 1} FAQをスキップ（回答不可能）: {current_question[:50]}...")
                                     continue
 
-                                # 重複チェック
+                                # 重複チェック（キーワードベース）
                                 is_duplicate = False
-                                similarity_threshold = 0.40
 
                                 # 既存FAQとの重複チェック
                                 for existing_q in unique_questions:
                                     similarity = self.calculate_similarity(current_question, existing_q)
-                                    if similarity >= similarity_threshold:
-                                        print(f"[DEBUG] セクション{section_idx + 1} FAQをスキップ（既存と重複 {similarity:.2f}）: {current_question[:40]}...")
+
+                                    # キーワードベースの判定
+                                    if similarity >= 0.85:
+                                        # 文字列がほぼ同一 → 重複
+                                        print(f"[DEBUG] ランダムウィンドウ{window_idx + 1} FAQをスキップ（既存と完全重複 {similarity:.2f}）: {current_question[:40]}...")
                                         is_duplicate = True
                                         break
+                                    elif similarity >= 0.60:
+                                        # 文字列は似ているが、重要キーワードをチェック
+                                        keywords_new = self._extract_important_keywords(current_question)
+                                        keywords_existing = self._extract_important_keywords(existing_q)
+
+                                        if keywords_new == keywords_existing:
+                                            print(f"[DEBUG] ランダムウィンドウ{window_idx + 1} FAQをスキップ（既存と重複 {similarity:.2f}, キーワード一致）: {current_question[:40]}...")
+                                            is_duplicate = True
+                                            break
+                                        else:
+                                            print(f"[DEBUG] ランダムウィンドウ{window_idx + 1} 類似度{similarity:.2f}だがキーワード異なる: {current_question[:40]}...")
 
                                 # これまでに生成したFAQとの重複チェック
                                 if not is_duplicate:
                                     for already_added in all_faqs:
                                         similarity = self.calculate_similarity(current_question, already_added.get('question', ''))
-                                        if similarity >= similarity_threshold:
-                                            print(f"[DEBUG] セクション{section_idx + 1} FAQをスキップ（生成済みと重複 {similarity:.2f}）: {current_question[:40]}...")
+
+                                        if similarity >= 0.85:
+                                            print(f"[DEBUG] ランダムウィンドウ{window_idx + 1} FAQをスキップ（生成済みと完全重複 {similarity:.2f}）: {current_question[:40]}...")
                                             is_duplicate = True
                                             break
+                                        elif similarity >= 0.60:
+                                            keywords_new = self._extract_important_keywords(current_question)
+                                            keywords_added = self._extract_important_keywords(already_added.get('question', ''))
+
+                                            if keywords_new == keywords_added:
+                                                print(f"[DEBUG] ランダムウィンドウ{window_idx + 1} FAQをスキップ（生成済みと重複 {similarity:.2f}, キーワード一致）: {current_question[:40]}...")
+                                                is_duplicate = True
+                                                break
 
                                 if not is_duplicate:
                                     all_faqs.append(faq)
                                     unique_questions.append(current_question)  # 次回の重複チェック用に追加
-                                    print(f"[DEBUG] セクション{section_idx + 1} FAQを追加: {current_question[:50]}...")
+                                    print(f"[DEBUG] ランダムウィンドウ{window_idx + 1} FAQを追加: {current_question[:50]}...")
                                     print(f"[DEBUG] 現在のFAQ総数: {len(all_faqs)}/{num_questions}")
 
                         except json.JSONDecodeError as e:
-                            print(f"[ERROR] セクション{section_idx + 1} JSONパースエラー: {e}")
+                            print(f"[ERROR] ランダムウィンドウ{window_idx + 1} JSONパースエラー: {e}")
                             print(f"[ERROR] パース失敗したJSON: {json_str[:500]}")
                             continue
                     else:
-                        print(f"[ERROR] セクション{section_idx + 1} JSONを抽出できませんでした")
+                        print(f"[ERROR] ランダムウィンドウ{window_idx + 1} JSONを抽出できませんでした")
                         continue
                 else:
-                    print(f"[ERROR] セクション{section_idx + 1} API呼び出し失敗 - ステータス: {response.status_code if response else 'None'}")
+                    print(f"[ERROR] ランダムウィンドウ{window_idx + 1} API呼び出し失敗 - ステータス: {response.status_code if response else 'None'}")
                     continue
 
-                # セクション間でレート制限を回避するため少し待機
-                if section_idx < len(sections) - 1:
+                # ウィンドウ間でレート制限を回避するため少し待機
+                if window_idx < len(window_pairs) - 1:
                     import time
                     time.sleep(1)
 
-            # すべてのセクション処理完了後
-            print(f"\n[DEBUG] セクション分割アプローチ完了: {len(all_faqs)}件のFAQ生成")
+            # すべてのウィンドウ処理完了後
+            print(f"\n[DEBUG] 2段階ウィンドウ方式完了: {len(all_faqs)}件のFAQ生成")
 
             # 生成数が足りない場合の警告
             if len(all_faqs) < num_questions:
