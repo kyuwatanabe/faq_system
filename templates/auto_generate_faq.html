@@ -232,38 +232,19 @@
         </div>
 
         <div class="content">
-            <div class="info-box">
-                <h3>📄 FAQ自動生成について</h3>
+            <div class="info-box" style="background: #fff3cd; border-left-color: #ffc107;">
+                <h3>🔧 デバッグモード</h3>
                 <ul>
-                    <li><strong>PDFファイルから指定した個数のFAQを自動生成します</strong></li>
+                    <li><strong>第2章.pdfから自動的に10個のFAQを生成します</strong></li>
+                    <li>ボタンを押すだけで実行されます（ファイル選択不要）</li>
                     <li>生成されたFAQは承認待ちキューに追加されます</li>
-                    <li>ファイルサイズ: 最大10MB</li>
-                    <li>生成数: 1〜50個</li>
                 </ul>
             </div>
 
             <div class="auto-generate-section">
-                <h2>FAQ 自動生成</h2>
-                <p style="margin-bottom: 20px; color: #666;">PDFファイルからFAQを自動生成します</p>
+                <h2>FAQ 自動生成（デバッグモード）</h2>
+                <p style="margin-bottom: 20px; color: #666;">第2章.pdf から 10個のFAQを自動生成します</p>
                 <form action="/admin/auto_generate" method="post" enctype="multipart/form-data">
-                    <div class="form-group">
-                        <label for="source_file">PDFファイル（必須）</label>
-                        <input type="file" name="source_file" id="source_file" accept=".pdf" required>
-                        <span class="file-help">※ PDFファイルのみアップロード可能（最大10MB）</span>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="num_questions">生成するFAQ数</label>
-                        <input type="number" name="num_questions" id="num_questions" value="10" min="1" max="50" required>
-                        <span class="file-help">※ 1〜50個の範囲で指定してください</span>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="category">カテゴリ</label>
-                        <input type="text" name="category" id="category" value="AI生成" required>
-                        <span class="file-help">※ 生成されるFAQのカテゴリを指定してください</span>
-                    </div>
-
                     <button type="submit" class="btn" id="generateBtn">FAQ自動生成を実行</button>
                     <div id="generateStatus" class="generate-status"></div>
                 </form>
@@ -286,19 +267,11 @@
             const generateBtn = document.getElementById('generateBtn');
             const statusDiv = document.getElementById('generateStatus');
 
-            // ファイルが選択されているかチェック
-            const fileInput = document.getElementById('source_file');
-            if (!fileInput.files || fileInput.files.length === 0) {
-                statusDiv.className = 'generate-status error';
-                statusDiv.textContent = 'エラー: PDFファイルを選択してください';
-                return;
-            }
-
             // ボタンを無効化してローディング表示
             generateBtn.disabled = true;
             generateBtn.textContent = '生成中...';
             statusDiv.className = 'generate-status loading';
-            statusDiv.textContent = 'FAQ生成中です。しばらくお待ちください...';
+            statusDiv.textContent = 'FAQ生成中です（第2章.pdfから10個生成）。しばらくお待ちください...';
 
             // タイムアウト設定（5分 = 300秒）
             const controller = new AbortController();

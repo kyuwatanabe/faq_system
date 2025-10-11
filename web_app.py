@@ -427,7 +427,7 @@ def auto_generate_faqs():
     try:
         # デバッグモード: 第2章.pdfを固定で使用
         import os
-        DEBUG_MODE = False
+        DEBUG_MODE = True
 
         if DEBUG_MODE:
             print("[DEBUG] デバッグモード: 第2章.pdfを使用")
