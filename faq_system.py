@@ -739,7 +739,7 @@ class FAQSystem:
 
             # 2段階ウィンドウ方式でPDFから抽出位置を決定
             import random
-            question_window = 200   # 質問用: 狭い範囲（トピック選択用）
+            question_window = 500   # 質問用: 狭い範囲（トピック選択用）
             answer_window = 1500    # 回答用: 広い範囲（詳細回答生成用）
             pdf_length = len(pdf_content)
             max_start = max(0, pdf_length - answer_window)
