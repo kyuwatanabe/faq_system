@@ -260,6 +260,9 @@
                         <button type="submit" class="btn" id="generateBtn">FAQ自動生成を実行（リトライ機能付き）</button>
                         <button type="button" class="btn" id="interruptBtn" style="background: #dc3545; display: none;">中断</button>
                     </div>
+                    <div id="timerDisplay" style="margin-top: 10px; font-size: 14px; color: #666; display: none;">
+                        経過時間: <span id="elapsedTime">00:00</span>
+                    </div>
                     <div id="generateStatus" class="generate-status"></div>
                 </form>
 
@@ -281,6 +284,8 @@
             const generateBtn = document.getElementById('generateBtn');
             const interruptBtn = document.getElementById('interruptBtn');
             const statusDiv = document.getElementById('generateStatus');
+            const timerDisplay = document.getElementById('timerDisplay');
+            const elapsedTimeSpan = document.getElementById('elapsedTime');
 
             // ボタンを無効化してローディング表示
             const selectedCount = document.getElementById('numQuestions').value;
@@ -289,6 +294,16 @@
             interruptBtn.style.display = 'inline-block'; // 中断ボタンを表示
             statusDiv.className = 'generate-status loading';
             statusDiv.textContent = `FAQ生成中です（第2章.pdfから${selectedCount}件生成）。しばらくお待ちください...`;
+
+            // タイマー開始
+            timerDisplay.style.display = 'block';
+            let startTime = Date.now();
+            let timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                elapsedTimeSpan.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }, 1000);
 
             // 進捗ポーリング開始
             let pollingInterval = setInterval(() => {
@@ -299,8 +314,10 @@
                             statusDiv.textContent = `FAQ生成中... 現在${progress.current}/${progress.total}件生成中`;
                         } else if (progress.status === 'interrupted') {
                             clearInterval(pollingInterval);
+                            clearInterval(timerInterval);
+                            const finalTime = elapsedTimeSpan.textContent;
                             statusDiv.className = 'generate-status error';
-                            statusDiv.innerHTML = `<strong>⚠ 生成が中断されました</strong><br>${progress.current}件のFAQが生成されました。<br><a href="/admin/review" style="color: #007c39; text-decoration: underline; font-weight: bold;">📋 承認待ちFAQを確認する</a>`;
+                            statusDiv.innerHTML = `<strong>⚠ 生成が中断されました</strong>（所要時間: ${finalTime}）<br>${progress.current}件のFAQが生成されました。<br><a href="/admin/review" style="color: #007c39; text-decoration: underline; font-weight: bold;">📋 承認待ちFAQを確認する</a>`;
                         }
                     })
                     .catch(error => {
@@ -320,12 +337,14 @@
             .then(response => {
                 clearTimeout(timeoutId);
                 clearInterval(pollingInterval); // ポーリング停止
+                clearInterval(timerInterval); // タイマー停止
                 return response.json();
             })
             .then(data => {
                 if (data.success) {
                     statusDiv.className = 'generate-status success';
-                    statusDiv.innerHTML = `<strong>✓ 生成完了！</strong><br><a href="/admin/review" style="color: #007c39; text-decoration: underline; font-weight: bold;">📋 承認待ちFAQを確認する</a>`;
+                    const finalTime = elapsedTimeSpan.textContent;
+                    statusDiv.innerHTML = `<strong>✓ 生成完了！</strong>（所要時間: ${finalTime}）<br><a href="/admin/review" style="color: #007c39; text-decoration: underline; font-weight: bold;">📋 承認待ちFAQを確認する</a>`;
                 } else {
                     statusDiv.className = 'generate-status error';
                     statusDiv.textContent = `エラー: ${data.message}`;
@@ -334,6 +353,7 @@
             .catch(error => {
                 clearTimeout(timeoutId);
                 clearInterval(pollingInterval); // ポーリング停止
+                clearInterval(timerInterval); // タイマー停止
                 statusDiv.className = 'generate-status error';
                 if (error.name === 'AbortError') {
                     statusDiv.textContent = 'エラー: FAQの生成に時間がかかりすぎています。サーバーで処理中の可能性があるため、承認待ちFAQ画面で確認してください。';
