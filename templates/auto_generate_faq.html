@@ -261,7 +261,8 @@
                         <button type="button" class="btn" id="interruptBtn" style="background: #dc3545; display: none;">中断</button>
                     </div>
                     <div id="timerDisplay" style="margin-top: 10px; font-size: 14px; color: #666; display: none;">
-                        経過時間: <span id="elapsedTime">00:00</span>
+                        経過時間: <span id="elapsedTime">00:00</span> |
+                        生成速度: <span id="generationSpeed">--</span>秒/件
                     </div>
                     <div id="generateStatus" class="generate-status"></div>
                 </form>
@@ -286,6 +287,7 @@
             const statusDiv = document.getElementById('generateStatus');
             const timerDisplay = document.getElementById('timerDisplay');
             const elapsedTimeSpan = document.getElementById('elapsedTime');
+            const generationSpeedSpan = document.getElementById('generationSpeed');
 
             // ボタンを無効化してローディング表示
             const selectedCount = document.getElementById('numQuestions').value;
@@ -298,6 +300,7 @@
             // タイマー開始
             timerDisplay.style.display = 'block';
             let startTime = Date.now();
+            let lastGeneratedCount = 0;
             let timerInterval = setInterval(() => {
                 const elapsed = Math.floor((Date.now() - startTime) / 1000);
                 const minutes = Math.floor(elapsed / 60);
@@ -312,12 +315,31 @@
                     .then(progress => {
                         if (progress.status === 'generating') {
                             statusDiv.textContent = `FAQ生成中... 現在${progress.current}/${progress.total}件生成中`;
+
+                            // 生成速度を計算（1件あたりの秒数）
+                            if (progress.current > 0) {
+                                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                                const speedPerItem = (elapsed / progress.current).toFixed(1);
+                                generationSpeedSpan.textContent = speedPerItem;
+
+                                // 推定残り時間も計算
+                                const remaining = progress.total - progress.current;
+                                const estimatedSeconds = remaining * speedPerItem;
+                                const estMinutes = Math.floor(estimatedSeconds / 60);
+                                const estSeconds = Math.floor(estimatedSeconds % 60);
+                                if (remaining > 0) {
+                                    statusDiv.textContent = `FAQ生成中... 現在${progress.current}/${progress.total}件生成中（推定残り時間: ${estMinutes}:${String(estSeconds).padStart(2, '0')}）`;
+                                }
+                            } else {
+                                generationSpeedSpan.textContent = '--';
+                            }
                         } else if (progress.status === 'interrupted') {
                             clearInterval(pollingInterval);
                             clearInterval(timerInterval);
                             const finalTime = elapsedTimeSpan.textContent;
+                            const finalSpeed = generationSpeedSpan.textContent;
                             statusDiv.className = 'generate-status error';
-                            statusDiv.innerHTML = `<strong>⚠ 生成が中断されました</strong>（所要時間: ${finalTime}）<br>${progress.current}件のFAQが生成されました。<br><a href="/admin/review" style="color: #007c39; text-decoration: underline; font-weight: bold;">📋 承認待ちFAQを確認する</a>`;
+                            statusDiv.innerHTML = `<strong>⚠ 生成が中断されました</strong>（所要時間: ${finalTime}、平均速度: ${finalSpeed}秒/件）<br>${progress.current}件のFAQが生成されました。<br><a href="/admin/review" style="color: #007c39; text-decoration: underline; font-weight: bold;">📋 承認待ちFAQを確認する</a>`;
                         }
                     })
                     .catch(error => {
@@ -344,7 +366,8 @@
                 if (data.success) {
                     statusDiv.className = 'generate-status success';
                     const finalTime = elapsedTimeSpan.textContent;
-                    statusDiv.innerHTML = `<strong>✓ 生成完了！</strong>（所要時間: ${finalTime}）<br><a href="/admin/review" style="color: #007c39; text-decoration: underline; font-weight: bold;">📋 承認待ちFAQを確認する</a>`;
+                    const finalSpeed = generationSpeedSpan.textContent;
+                    statusDiv.innerHTML = `<strong>✓ 生成完了！</strong>（所要時間: ${finalTime}、平均速度: ${finalSpeed}秒/件）<br><a href="/admin/review" style="color: #007c39; text-decoration: underline; font-weight: bold;">📋 承認待ちFAQを確認する</a>`;
                 } else {
                     statusDiv.className = 'generate-status error';
                     statusDiv.textContent = `エラー: ${data.message}`;
