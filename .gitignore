@@ -45,6 +45,7 @@ Thumbs.db
 # FAQ System data files
 faq_generation_history.csv
 unsatisfied_qa.csv
+pending_qa.csv
 
 # Test files
 test_*.py
