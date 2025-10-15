@@ -1080,6 +1080,10 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
                 retry_attempt = len(window_pairs) + retry_count
                 print(f"\n[DEBUG] 追加生成試行 {retry_attempt} (リトライ{retry_count}/{max_retry_attempts}): 目標{num_questions}件 / 現在{len(all_faqs)}件")
 
+                # リトライ開始を通知（UIが止まって見えないようにする）
+                if self.progress_callback:
+                    self.progress_callback(len(all_faqs), num_questions)
+
                 # 新しいランダムウィンドウを生成
                 if possible_positions:
                     # 使っていない位置からランダムに選ぶ
