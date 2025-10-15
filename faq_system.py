@@ -777,11 +777,13 @@ class FAQSystem:
 
             print(f"[DEBUG] 2段階ウィンドウ方式: {len(window_pairs)}個のウィンドウペアを生成")
 
-            # 既存のFAQのみをチェック（承認待ちは含めない）
+            # 既存のFAQと承認待ちFAQの両方をチェック
             existing_questions = [faq['question'] for faq in self.faq_data]
 
-            # 承認待ちは新規FAQ候補なので重複チェック対象から除外
-            all_existing_questions = existing_questions
+            # 承認待ちFAQも重複チェック対象に追加
+            self.load_pending_qa()
+            pending_questions = [item['question'] for item in self.pending_qa if 'question' in item]
+            all_existing_questions = existing_questions + pending_questions
 
             # 重複を除去して番号付きリストを作成
             unique_questions = []
@@ -798,7 +800,7 @@ class FAQSystem:
             else:
                 existing_context = "既存の質問はありません。"
 
-            print(f"[DEBUG] 重複チェック対象 - 既存FAQ: {len(existing_questions)}件")
+            print(f"[DEBUG] 重複チェック対象 - 既存FAQ: {len(existing_questions)}件, 承認待ち: {len(pending_questions)}件")
             print(f"[DEBUG] ユニークな既存質問: {len(unique_questions)}件")
 
             # 各セクションから1つずつFAQを生成
