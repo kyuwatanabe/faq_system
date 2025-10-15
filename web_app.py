@@ -17,9 +17,10 @@ generation_progress = {
     'current': 0,
     'total': 0,
     'status': 'idle',  # idle, generating, completed, error
-    'retry_count': 0,  # 現在のリトライ回数
-    'max_retries': 0,  # 最大リトライ回数
-    'consecutive_failures': 0  # 連続失敗回数
+    'retry_count': 0,  # 現在のウィンドウリトライ回数
+    'max_retries': 10,  # 最大リトライ回数（ウィンドウごと）
+    'excluded_windows': 0,  # 除外されたウィンドウ数
+    'total_windows': 0  # 総ウィンドウ数
 }
 
 @app.route('/')
@@ -468,20 +469,21 @@ def auto_generate_faqs():
             generation_progress['total'] = num_questions
             generation_progress['status'] = 'generating'
             generation_progress['retry_count'] = 0
-            generation_progress['max_retries'] = 20  # faq_system.pyのmax_retry_attemptsと同じ
-            generation_progress['consecutive_failures'] = 0
+            generation_progress['max_retries'] = 10  # ウィンドウごとの最大リトライ回数
+            generation_progress['excluded_windows'] = 0
+            generation_progress['total_windows'] = 0
 
             # 中断フラグをリセット
             faq_system.generation_interrupted = False
 
             # 進捗更新用コールバックを設定
-            def update_progress(current, total, retry_count=0, consecutive_failures=0):
+            def update_progress(current, total, retry_count=0, excluded_windows=0):
                 generation_progress['current'] = current
                 generation_progress['total'] = total
                 generation_progress['status'] = 'generating'
                 generation_progress['retry_count'] = retry_count
-                generation_progress['consecutive_failures'] = consecutive_failures
-                print(f"[DEBUG] 進捗更新: {current}/{total}, リトライ: {retry_count}, 連続失敗: {consecutive_failures}")
+                generation_progress['excluded_windows'] = excluded_windows
+                print(f"[DEBUG] 進捗更新: {current}/{total}, ウィンドウリトライ: {retry_count}, 除外ウィンドウ: {excluded_windows}")
 
             faq_system.progress_callback = update_progress
 

@@ -745,8 +745,9 @@ class FAQSystem:
 
             # ランダムな開始位置を生成（50文字単位、ランダム選択用）
             possible_positions = list(range(0, max_start, 50))
+            total_windows = len(possible_positions)
 
-            print(f"[DEBUG] 利用可能なウィンドウ位置数: {len(possible_positions)}個")
+            print(f"[DEBUG] 利用可能なウィンドウ位置数: {total_windows}個")
 
             # ウィンドウ生成関数
             def create_window_pair(pos):
@@ -825,7 +826,7 @@ class FAQSystem:
                 selected_position = random.choice(available_windows)
                 window_pair = create_window_pair(selected_position)
 
-                print(f"\n[DEBUG] 生成試行 {generation_attempt} (位置: {selected_position}, 進捗: {len(all_faqs)}/{num_questions})...")
+                print(f"\n[DEBUG] 生成試行 {generation_attempt} (位置: {selected_position}, 質問範囲: {window_pair['q_range']}, 進捗: {len(all_faqs)}/{num_questions})...")
 
                 # 2段階ウィンドウ専用のプロンプト作成
                 prompt = f"""
