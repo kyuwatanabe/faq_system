@@ -1088,6 +1088,7 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
                 if possible_positions:
                     # 使っていない位置からランダムに選ぶ
                     new_start = random.choice(possible_positions)
+                    possible_positions.remove(new_start)  # 使用した位置を削除
                     q_start = new_start + (answer_window - question_window) // 2
                     q_end = q_start + question_window
                     question_text = pdf_content[q_start:q_end]
