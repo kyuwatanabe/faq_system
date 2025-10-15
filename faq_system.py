@@ -1250,6 +1250,9 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
                                        '公式の情報源を参照' in current_answer or '公式情報を確認' in current_answer:
                                         print(f"[DEBUG] 追加生成{retry_attempt} FAQをスキップ（回答不可能）")
                                         consecutive_failures += 1
+                                        # 回答不可能時も進捗を更新
+                                        if self.progress_callback:
+                                            self.progress_callback(len(all_faqs), num_questions, retry_count, consecutive_failures)
                                         continue
 
                                     # 重複チェック
@@ -1282,6 +1285,9 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
                                     if is_duplicate:
                                         print(f"[DEBUG] 追加生成{retry_attempt} FAQをスキップ（重複）")
                                         consecutive_failures += 1
+                                        # 重複時も進捗を更新
+                                        if self.progress_callback:
+                                            self.progress_callback(len(all_faqs), num_questions, retry_count, consecutive_failures)
                                     else:
                                         all_faqs.append(faq)
                                         unique_questions.append(current_question)
@@ -1296,11 +1302,20 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
                                         break  # 1個追加したらループ終了
                             else:
                                 consecutive_failures += 1
+                                # JSON抽出失敗時も進捗を更新
+                                if self.progress_callback:
+                                    self.progress_callback(len(all_faqs), num_questions, retry_count, consecutive_failures)
                         else:
                             consecutive_failures += 1
+                            # API失敗時も進捗を更新
+                            if self.progress_callback:
+                                self.progress_callback(len(all_faqs), num_questions, retry_count, consecutive_failures)
                     except Exception as e:
                         print(f"[ERROR] 追加生成{retry_attempt} エラー: {e}")
                         consecutive_failures += 1
+                        # エラー時も進捗を更新
+                        if self.progress_callback:
+                            self.progress_callback(len(all_faqs), num_questions, retry_count, consecutive_failures)
 
                     import time
                     time.sleep(1)  # API制限回避
