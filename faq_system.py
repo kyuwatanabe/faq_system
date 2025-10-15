@@ -896,27 +896,37 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
                 json_data = json.dumps(data, ensure_ascii=False)
 
                 # API呼び出し（リトライ付き）
+                import time
                 max_retries = 3
                 retry_delay = 5
                 response = None
 
+                # API呼び出し開始時刻を記録
+                api_start_time = time.time()
+                print(f"[TIME] API呼び出し開始...")
+
                 for attempt in range(max_retries):
+                    attempt_start_time = time.time()
                     response = requests.post(
                         'https://api.anthropic.com/v1/messages',
                         headers=headers,
                         data=json_data.encode('utf-8'),
                         timeout=60
                     )
+                    api_call_time = time.time() - attempt_start_time
+                    print(f"[TIME] API呼び出し完了 (試行{attempt + 1}): {api_call_time:.1f}秒, ステータス: {response.status_code}")
 
                     if response.status_code == 200:
                         break
                     elif response.status_code == 529 and attempt < max_retries - 1:
                         print(f"[WARNING] Claude API過負荷 (529) - {attempt + 1}/{max_retries}回目、{retry_delay}秒後にリトライ...")
-                        import time
                         time.sleep(retry_delay)
                         retry_delay *= 2
                     else:
                         break
+
+                total_api_time = time.time() - api_start_time
+                print(f"[TIME] API処理合計時間: {total_api_time:.1f}秒")
 
                 if response and response.status_code == 200:
                     result = response.json()
@@ -1025,6 +1035,10 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
                                 # 重複チェック（キーワードベース）
                                 is_duplicate = False
 
+                                # 重複チェック開始時刻を記録
+                                dup_check_start = time.time()
+                                print(f"[TIME] 重複チェック開始 (既存質問数: {len(unique_questions)}件)...")
+
                                 # 既存FAQとの重複チェック
                                 for existing_q in unique_questions:
                                     similarity = self.calculate_similarity(current_question, existing_q)
@@ -1064,6 +1078,10 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
                                                 print(f"[DEBUG] 生成試行 {generation_attempt} FAQをスキップ（生成済みと重複 {similarity:.2f}, キーワード一致）: {current_question[:40]}...")
                                                 is_duplicate = True
                                                 break
+
+                                # 重複チェック完了時刻を記録
+                                dup_check_time = time.time() - dup_check_start
+                                print(f"[TIME] 重複チェック完了: {dup_check_time:.1f}秒, 重複判定: {is_duplicate}")
 
                                 if is_duplicate:
                                     # 重複の場合、ウィンドウ重複カウントを増やす
