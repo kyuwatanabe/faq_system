@@ -233,19 +233,20 @@
 
         <div class="content">
             <div class="info-box" style="background: #fff3cd; border-left-color: #ffc107;">
-                <h3>🔧 デバッグモード</h3>
+                <h3>🔧 デバッグモード（リトライ機能付き）</h3>
                 <ul>
                     <li><strong>第2章.pdfから自動的に10個のFAQを生成します</strong></li>
-                    <li>ボタンを押すだけで実行されます（ファイル選択不要）</li>
+                    <li>重複FAQは除外され、指定数まで自動的に追加生成されます</li>
                     <li>生成されたFAQは承認待ちキューに追加されます</li>
+                    <li>生成には時間がかかる場合があります（目安: 1〜5分）</li>
                 </ul>
             </div>
 
             <div class="auto-generate-section">
                 <h2>FAQ 自動生成（デバッグモード）</h2>
-                <p style="margin-bottom: 20px; color: #666;">第2章.pdf から 10個のFAQを自動生成します</p>
+                <p style="margin-bottom: 20px; color: #666;">第2章.pdf から 10個のFAQを自動生成します（重複は自動的に除外されます）</p>
                 <form action="/admin/auto_generate" method="post" enctype="multipart/form-data">
-                    <button type="submit" class="btn" id="generateBtn">FAQ自動生成を実行</button>
+                    <button type="submit" class="btn" id="generateBtn">FAQ自動生成を実行（リトライ機能付き）</button>
                     <div id="generateStatus" class="generate-status"></div>
                 </form>
 
@@ -289,7 +290,7 @@
             .then(data => {
                 if (data.success) {
                     statusDiv.className = 'generate-status success';
-                    statusDiv.textContent = `成功！${data.generated_count}件のFAQを承認待ちキューに追加しました。`;
+                    statusDiv.innerHTML = `<strong>✓ 成功！</strong><br>${data.generated_count}件のFAQを生成し、承認待ちキューに追加しました。<br><a href="/admin/review" style="color: #007c39; text-decoration: underline;">承認待ちFAQを確認する</a>`;
                 } else {
                     statusDiv.className = 'generate-status error';
                     statusDiv.textContent = `エラー: ${data.message}`;

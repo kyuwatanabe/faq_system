@@ -15,6 +15,8 @@ class FAQSystem:
         self.csv_file = csv_file
         self.pending_file = 'pending_qa.csv'
         self.claude_api_key = None  # web_app.pyから設定される
+        self.generation_interrupted = False  # 生成中断フラグ
+        self.progress_callback = None  # 進捗報告用コールバック
         self.load_faq_data(csv_file)
         self.load_pending_qa()
 
@@ -1051,12 +1053,241 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
                     time.sleep(1)
 
             # すべてのウィンドウ処理完了後
-            print(f"\n[DEBUG] 2段階ウィンドウ方式完了: {len(all_faqs)}件のFAQ生成")
+            print(f"\n[DEBUG] 初回生成完了: {len(all_faqs)}件のFAQ生成")
 
-            # 生成数が足りない場合の警告
+            # 生成数が足りない場合はリトライ（最大20回まで）
+            max_retry_attempts = 20
+            consecutive_failures = 0
+            max_consecutive_failures = 10
+
+            while len(all_faqs) < num_questions and consecutive_failures < max_consecutive_failures:
+                retry_attempt = len(window_pairs) + consecutive_failures + 1
+                print(f"\n[DEBUG] 追加生成試行 {retry_attempt}: 目標{num_questions}件 / 現在{len(all_faqs)}件")
+
+                # 新しいランダムウィンドウを生成
+                if possible_positions:
+                    # 使っていない位置からランダムに選ぶ
+                    new_start = random.choice(possible_positions)
+                    q_start = new_start + (answer_window - question_window) // 2
+                    q_end = q_start + question_window
+                    question_text = pdf_content[q_start:q_end]
+
+                    a_start = new_start
+                    a_end = new_start + answer_window
+                    answer_text = pdf_content[a_start:a_end]
+
+                    new_window_pair = {
+                        'question_text': question_text,
+                        'answer_text': answer_text,
+                        'q_range': f"{q_start}~{q_end}",
+                        'a_range': f"{a_start}~{a_end}"
+                    }
+
+                    # 既存コンテキストを更新
+                    if unique_questions:
+                        existing_context = "【重要：以下の★既存質問は絶対に生成しないこと】\n\n"
+                        existing_context += "\n".join([f"★既存質問{i+1}: {q}" for i, q in enumerate(unique_questions[:100])])
+                        existing_context += "\n\n上記の★既存質問と意味が重複する質問は絶対に生成しないでください。"
+
+                    # プロンプト作成
+                    prompt = f"""
+あなたはアメリカビザ専門のFAQシステムのコンテンツ生成エキスパートです。
+
+{existing_context}
+
+【タスク】
+FAQを1個生成してください。**必ず以下の手順で生成すること**：
+
+**ステップ1: 質問の生成**
+以下の「質問生成範囲」から、1つの明確なトピックを選んで質問を作成してください。
+
+【質問生成範囲】（この{question_window}文字から1つのトピックを選ぶ）
+{new_window_pair['question_text']}
+
+**ステップ2: 回答の生成**
+ステップ1で作成した質問に対して、以下の「回答生成範囲」の情報を使って回答を作成してください。
+
+【回答生成範囲】（質問に答えるために、この{answer_window}文字から情報を探す）
+{new_window_pair['answer_text'][:3000]}
+
+【生成要件】
+1. **絶対厳守**: 上記の★既存質問と意味が重複する質問は絶対に生成しないこと
+2. **質問は必ず「質問生成範囲」から作成**すること
+3. **回答は必ず「回答生成範囲」から情報を取得**して作成すること
+4. 実用的で具体的な質問を作成する
+5. 日本人がよく聞きそうな質問にする
+6. **重要**: 回答は質問に直接答えることに焦点を当てる
+   - 質問が「〜は必要ですか？」なら、必要かどうかと理由だけを答える
+   - 質問が「〜とは何ですか？」なら、定義と要点だけを答える
+   - 料金、有効期間、手続き方法などは、質問で直接聞かれていない限り含めない
+7. 回答は簡潔で分かりやすい日本語で書く
+8. 専門用語には適切な説明を加える
+
+【生成禁止の例】
+- 回答生成範囲に十分な情報がないトピックの質問
+- **「PDFには記載がありません」で終わるような回答不可能な質問**
+
+【出力形式】
+以下のJSON配列形式で**1個だけ**FAQを出力してください：
+
+[
+  {{
+    "question": "具体的な質問文",
+    "answer": "質問に直接答える簡潔な回答文（改行や引用符を使わず1行で記述）",
+    "keywords": "関連キーワード1;関連キーワード2;関連キーワード3",
+    "category": "{category}"
+  }}
+]
+
+JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成してください。
+"""
+
+                    data = {
+                        'model': 'claude-3-haiku-20240307',
+                        'max_tokens': 2048,
+                        'temperature': 0.8,
+                        'messages': [
+                            {
+                                'role': 'user',
+                                'content': prompt
+                            }
+                        ]
+                    }
+
+                    json_data = json.dumps(data, ensure_ascii=False)
+
+                    # API呼び出し
+                    try:
+                        response = requests.post(
+                            'https://api.anthropic.com/v1/messages',
+                            headers=headers,
+                            data=json_data.encode('utf-8'),
+                            timeout=60
+                        )
+
+                        if response.status_code == 200:
+                            result = response.json()
+                            content = result['content'][0]['text']
+
+                            # JSON抽出と処理（既存のロジックと同じ）
+                            import re
+                            import unicodedata
+                            json_match = re.search(r'```json\s*(\[.*?\])\s*```', content, re.DOTALL)
+                            if not json_match:
+                                json_match = re.search(r'\[.*\]', content, re.DOTALL)
+                                json_str = json_match.group() if json_match else None
+                            else:
+                                json_str = json_match.group(1)
+
+                            if json_str:
+                                cleaned_json = ''.join(
+                                    char if char in '{}[]":, ' or not unicodedata.category(char).startswith('C')
+                                    else ' '
+                                    for char in json_str
+                                )
+
+                                try:
+                                    section_faqs = json.loads(cleaned_json)
+                                except json.JSONDecodeError:
+                                    # クォート修正して再試行
+                                    def replace_inner_quotes(text):
+                                        result = []
+                                        i = 0
+                                        while i < len(text):
+                                            if i < len(text) - 3 and text[i:i+3] == '": ':
+                                                result.append(text[i:i+3])
+                                                i += 3
+                                                if i < len(text) and text[i] == '"':
+                                                    result.append('"')
+                                                    i += 1
+                                                    value_chars = []
+                                                    while i < len(text):
+                                                        if text[i] == '"' and (i + 1 >= len(text) or text[i+1] in ',\n}]'):
+                                                            result.append(''.join(value_chars).replace('"', "'"))
+                                                            result.append('"')
+                                                            i += 1
+                                                            break
+                                                        else:
+                                                            value_chars.append(text[i])
+                                                            i += 1
+                                            else:
+                                                result.append(text[i])
+                                                i += 1
+                                        return ''.join(result)
+
+                                    cleaned_json = replace_inner_quotes(cleaned_json)
+                                    section_faqs = json.loads(cleaned_json)
+
+                                # FAQの処理
+                                for faq in section_faqs:
+                                    current_question = faq.get('question', '')
+                                    current_answer = faq.get('answer', '')
+
+                                    # 回答不可能チェック
+                                    answer_lower = current_answer.lower()
+                                    if (('記載がありません' in answer_lower or '記載されていません' in answer_lower) and
+                                        ('pdf' in answer_lower or 'ドキュメント' in answer_lower)) or \
+                                       '公式の情報源を参照' in current_answer or '公式情報を確認' in current_answer:
+                                        print(f"[DEBUG] 追加生成{retry_attempt} FAQをスキップ（回答不可能）")
+                                        consecutive_failures += 1
+                                        continue
+
+                                    # 重複チェック
+                                    is_duplicate = False
+                                    for existing_q in unique_questions:
+                                        similarity = self.calculate_similarity(current_question, existing_q)
+                                        if similarity >= 0.85:
+                                            is_duplicate = True
+                                            break
+                                        elif similarity >= 0.60:
+                                            keywords_new = self._extract_important_keywords(current_question)
+                                            keywords_existing = self._extract_important_keywords(existing_q)
+                                            if keywords_new == keywords_existing:
+                                                is_duplicate = True
+                                                break
+
+                                    if not is_duplicate:
+                                        for already_added in all_faqs:
+                                            similarity = self.calculate_similarity(current_question, already_added.get('question', ''))
+                                            if similarity >= 0.85:
+                                                is_duplicate = True
+                                                break
+                                            elif similarity >= 0.60:
+                                                keywords_new = self._extract_important_keywords(current_question)
+                                                keywords_added = self._extract_important_keywords(already_added.get('question', ''))
+                                                if keywords_new == keywords_added:
+                                                    is_duplicate = True
+                                                    break
+
+                                    if is_duplicate:
+                                        print(f"[DEBUG] 追加生成{retry_attempt} FAQをスキップ（重複）")
+                                        consecutive_failures += 1
+                                    else:
+                                        all_faqs.append(faq)
+                                        unique_questions.append(current_question)
+                                        print(f"[DEBUG] 追加生成{retry_attempt} FAQを追加: {current_question[:50]}...")
+                                        print(f"[DEBUG] 現在のFAQ総数: {len(all_faqs)}/{num_questions}")
+                                        consecutive_failures = 0  # 成功したのでリセット
+                                        break  # 1個追加したらループ終了
+                            else:
+                                consecutive_failures += 1
+                        else:
+                            consecutive_failures += 1
+                    except Exception as e:
+                        print(f"[ERROR] 追加生成{retry_attempt} エラー: {e}")
+                        consecutive_failures += 1
+
+                    import time
+                    time.sleep(1)  # API制限回避
+                else:
+                    print("[DEBUG] これ以上ランダム位置を生成できません")
+                    break
+
+            print(f"\n[DEBUG] FAQ生成完了: {len(all_faqs)}件生成（目標: {num_questions}件）")
+
             if len(all_faqs) < num_questions:
                 print(f"[WARNING] 目標FAQ数{num_questions}件に対して{len(all_faqs)}件のみ生成されました。")
-                print(f"[WARNING] 重複または回答不可能な質問が除外された可能性があります。")
+                print(f"[WARNING] 重複または回答不可能な質問が多かったため、これ以上生成できませんでした。")
 
             # 生成したFAQを履歴に保存して返す
             if all_faqs:
