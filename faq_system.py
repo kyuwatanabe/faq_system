@@ -1043,7 +1043,7 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
 
                                     # 進捗を更新（progress_callbackが設定されている場合）
                                     if self.progress_callback:
-                                        self.progress_callback(len(all_faqs), num_questions)
+                                        self.progress_callback(len(all_faqs), num_questions, 0, 0)
 
                         except json.JSONDecodeError as e:
                             print(f"[ERROR] ランダムウィンドウ{window_idx + 1} JSONパースエラー: {e}")
@@ -1291,7 +1291,7 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
 
                                         # 進捗を更新（progress_callbackが設定されている場合）
                                         if self.progress_callback:
-                                            self.progress_callback(len(all_faqs), num_questions)
+                                            self.progress_callback(len(all_faqs), num_questions, retry_count, consecutive_failures)
 
                                         break  # 1個追加したらループ終了
                             else:
