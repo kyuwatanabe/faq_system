@@ -814,6 +814,11 @@ class FAQSystem:
             }
 
             for window_idx, window_pair in enumerate(window_pairs):
+                # 中断チェック
+                if self.generation_interrupted:
+                    print(f"[INFO] FAQ生成が中断されました（{len(all_faqs)}件生成済み）")
+                    break
+
                 print(f"\n[DEBUG] ランダムウィンドウ{window_idx + 1}/{len(window_pairs)}からFAQ生成中...")
 
                 # 2段階ウィンドウ専用のプロンプト作成
@@ -1065,6 +1070,11 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
             max_consecutive_failures = 10
 
             while len(all_faqs) < num_questions and consecutive_failures < max_consecutive_failures:
+                # 中断チェック
+                if self.generation_interrupted:
+                    print(f"[INFO] FAQ生成が中断されました（{len(all_faqs)}件生成済み）")
+                    break
+
                 retry_attempt = len(window_pairs) + consecutive_failures + 1
                 print(f"\n[DEBUG] 追加生成試行 {retry_attempt}: 目標{num_questions}件 / 現在{len(all_faqs)}件")
 

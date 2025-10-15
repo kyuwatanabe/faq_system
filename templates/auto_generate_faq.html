@@ -246,7 +246,10 @@
                 <h2>FAQ 自動生成（デバッグモード）</h2>
                 <p style="margin-bottom: 20px; color: #666;">第2章.pdf から 10個のFAQを自動生成します（重複は自動的に除外されます）</p>
                 <form action="/admin/auto_generate" method="post" enctype="multipart/form-data">
-                    <button type="submit" class="btn" id="generateBtn">FAQ自動生成を実行（リトライ機能付き）</button>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button type="submit" class="btn" id="generateBtn">FAQ自動生成を実行（リトライ機能付き）</button>
+                        <button type="button" class="btn" id="interruptBtn" style="background: #dc3545; display: none;">中断</button>
+                    </div>
                     <div id="generateStatus" class="generate-status"></div>
                 </form>
 
@@ -266,11 +269,13 @@
 
             const formData = new FormData(this);
             const generateBtn = document.getElementById('generateBtn');
+            const interruptBtn = document.getElementById('interruptBtn');
             const statusDiv = document.getElementById('generateStatus');
 
             // ボタンを無効化してローディング表示
             generateBtn.disabled = true;
             generateBtn.textContent = '生成中...';
+            interruptBtn.style.display = 'inline-block'; // 中断ボタンを表示
             statusDiv.className = 'generate-status loading';
             statusDiv.textContent = 'FAQ生成中です（第2章.pdfから10個生成）。しばらくお待ちください...';
 
@@ -281,6 +286,10 @@
                     .then(progress => {
                         if (progress.status === 'generating') {
                             statusDiv.textContent = `FAQ生成中... 現在${progress.current}/${progress.total}件生成中`;
+                        } else if (progress.status === 'interrupted') {
+                            clearInterval(pollingInterval);
+                            statusDiv.className = 'generate-status error';
+                            statusDiv.innerHTML = `<strong>⚠ 生成が中断されました</strong><br>${progress.current}件のFAQが生成されました。<br><a href="/admin/review" style="color: #007c39; text-decoration: underline; font-weight: bold;">📋 承認待ちFAQを確認する</a>`;
                         }
                     })
                     .catch(error => {
@@ -325,7 +334,24 @@
                 // ボタンを再有効化
                 generateBtn.disabled = false;
                 generateBtn.textContent = 'FAQ自動生成を実行';
+                interruptBtn.style.display = 'none'; // 中断ボタンを非表示
             });
+        });
+
+        // 中断ボタンのイベントリスナー
+        document.getElementById('interruptBtn').addEventListener('click', function() {
+            if (confirm('FAQ生成を中断しますか？')) {
+                fetch('/admin/interrupt_generation', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('中断リクエスト送信:', data);
+                })
+                .catch(error => {
+                    console.error('中断リクエストエラー:', error);
+                });
+            }
         });
 
         // FAQ生成履歴クリア機能

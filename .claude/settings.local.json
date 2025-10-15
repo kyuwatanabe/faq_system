@@ -48,7 +48,8 @@
       "Bash(dir:*)",
       "Bash(tee:*)",
       "Bash(git rm:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(railway up:*)"
     ],
     "deny": [],
     "ask": []

@@ -433,6 +433,14 @@ def get_generation_progress():
     """FAQ生成の進捗状況を取得"""
     return jsonify(generation_progress)
 
+@app.route('/admin/interrupt_generation', methods=['POST'])
+def interrupt_generation():
+    """FAQ生成を中断"""
+    faq_system.generation_interrupted = True
+    generation_progress['status'] = 'interrupted'
+    print("[INFO] FAQ生成の中断リクエストを受信")
+    return jsonify({'success': True, 'message': 'FAQ生成を中断しました'})
+
 @app.route('/admin/auto_generate', methods=['POST'])
 def auto_generate_faqs():
     """FAQ自動生成API"""
@@ -457,6 +465,9 @@ def auto_generate_faqs():
             generation_progress['total'] = num_questions
             generation_progress['status'] = 'generating'
 
+            # 中断フラグをリセット
+            faq_system.generation_interrupted = False
+
             # 進捗更新用コールバックを設定
             def update_progress(current, total):
                 generation_progress['current'] = current
@@ -469,8 +480,11 @@ def auto_generate_faqs():
             # FAQ生成
             generated_faqs = faq_system.generate_faqs_from_document(pdf_path, num_questions, category)
 
-            # 生成完了
-            generation_progress['status'] = 'completed'
+            # 生成完了（中断されていない場合のみ）
+            if not faq_system.generation_interrupted:
+                generation_progress['status'] = 'completed'
+            else:
+                generation_progress['status'] = 'interrupted'
         else:
             # 通常モード: ファイルアップロードの処理
             uploaded_file = request.files.get('source_file')
