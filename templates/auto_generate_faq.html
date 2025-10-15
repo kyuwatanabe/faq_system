@@ -304,6 +304,7 @@
             let startTime = Date.now();
             let lastGeneratedCount = 0;
             let lastGeneratedTime = Date.now();
+            let generationTimes = [];  // 直近5件の生成時間を記録
             let timerInterval = setInterval(() => {
                 const elapsed = Math.floor((Date.now() - startTime) / 1000);
                 const minutes = Math.floor(elapsed / 60);
@@ -321,6 +322,13 @@
                             if (progress.current > lastGeneratedCount) {
                                 const now = Date.now();
                                 const timeDiff = (now - lastGeneratedTime) / 1000;
+
+                                // 直近5件の生成時間を記録
+                                generationTimes.push(timeDiff);
+                                if (generationTimes.length > 5) {
+                                    generationTimes.shift();  // 最も古いデータを削除
+                                }
+
                                 generationSpeedSpan.textContent = timeDiff.toFixed(1);
                                 lastGeneratedTime = now;
                                 lastGeneratedCount = progress.current;
@@ -336,11 +344,12 @@
                                 idleTimeSpan.textContent = '--';
                             }
 
-                            // 推定終了時刻を計算
-                            if (progress.current > 0 && generationSpeedSpan.textContent !== '--') {
+                            // 推定終了時刻を計算（直近5件の平均速度を使用）
+                            if (progress.current > 0 && generationTimes.length > 0) {
                                 const remaining = progress.total - progress.current;
-                                const currentSpeed = parseFloat(generationSpeedSpan.textContent);
-                                const estimatedSecondsRemaining = remaining * currentSpeed;
+                                // 直近5件の平均速度を計算
+                                const avgSpeed = generationTimes.reduce((sum, time) => sum + time, 0) / generationTimes.length;
+                                const estimatedSecondsRemaining = remaining * avgSpeed;
                                 const estimatedEndTime = new Date(Date.now() + estimatedSecondsRemaining * 1000);
                                 const hours = estimatedEndTime.getHours();
                                 const minutes = estimatedEndTime.getMinutes();
