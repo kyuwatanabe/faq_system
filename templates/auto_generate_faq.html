@@ -274,6 +274,20 @@
             statusDiv.className = 'generate-status loading';
             statusDiv.textContent = 'FAQ生成中です（第2章.pdfから10個生成）。しばらくお待ちください...';
 
+            // 進捗ポーリング開始
+            let pollingInterval = setInterval(() => {
+                fetch('/admin/generation_progress')
+                    .then(response => response.json())
+                    .then(progress => {
+                        if (progress.status === 'generating') {
+                            statusDiv.textContent = `FAQ生成中... 現在${progress.current}/${progress.total}件生成中`;
+                        }
+                    })
+                    .catch(error => {
+                        console.log('進捗取得エラー:', error);
+                    });
+            }, 1000); // 1秒ごとにポーリング
+
             // タイムアウト設定（5分 = 300秒）
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 300000);
@@ -285,6 +299,7 @@
             })
             .then(response => {
                 clearTimeout(timeoutId);
+                clearInterval(pollingInterval); // ポーリング停止
                 return response.json();
             })
             .then(data => {
@@ -309,6 +324,7 @@
             })
             .catch(error => {
                 clearTimeout(timeoutId);
+                clearInterval(pollingInterval); // ポーリング停止
                 statusDiv.className = 'generate-status error';
                 if (error.name === 'AbortError') {
                     statusDiv.textContent = 'エラー: FAQの生成に時間がかかりすぎています。サーバーで処理中の可能性があるため、承認待ちFAQ画面で確認してください。';

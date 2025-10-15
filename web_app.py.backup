@@ -12,13 +12,6 @@ app = Flask(__name__)
 faq_system = FAQSystem('faq_data-1.csv')
 faq_system.claude_api_key = os.getenv('CLAUDE_API_KEY')
 
-# FAQ生成の進捗状況を保存するグローバル変数
-generation_progress = {
-    'current': 0,
-    'total': 0,
-    'status': 'idle'  # idle, generating, completed, error
-}
-
 @app.route('/')
 def index():
     """メインページ"""
@@ -428,11 +421,6 @@ def check_duplicates(qa_id):
         traceback.print_exc()
         return f"エラーが発生しました: {e}", 500
 
-@app.route('/admin/generation_progress', methods=['GET'])
-def get_generation_progress():
-    """FAQ生成の進捗状況を取得"""
-    return jsonify(generation_progress)
-
 @app.route('/admin/auto_generate', methods=['POST'])
 def auto_generate_faqs():
     """FAQ自動生成API"""
@@ -452,25 +440,8 @@ def auto_generate_faqs():
 
             print(f"[DEBUG] FAQ自動生成開始 - ファイル: 第2章.pdf, 数: {num_questions}")
 
-            # 進捗状況を初期化
-            generation_progress['current'] = 0
-            generation_progress['total'] = num_questions
-            generation_progress['status'] = 'generating'
-
-            # 進捗更新用コールバックを設定
-            def update_progress(current, total):
-                generation_progress['current'] = current
-                generation_progress['total'] = total
-                generation_progress['status'] = 'generating'
-                print(f"[DEBUG] 進捗更新: {current}/{total}")
-
-            faq_system.progress_callback = update_progress
-
             # FAQ生成
             generated_faqs = faq_system.generate_faqs_from_document(pdf_path, num_questions, category)
-
-            # 生成完了
-            generation_progress['status'] = 'completed'
         else:
             # 通常モード: ファイルアップロードの処理
             uploaded_file = request.files.get('source_file')
@@ -522,31 +493,14 @@ def auto_generate_faqs():
         if not generated_faqs:
             return jsonify({'success': False, 'message': 'FAQの生成に失敗しました'})
 
-        # 生成されたFAQを承認待ちキューに追加
-        added_count = 0
-        total_generated = len(generated_faqs)
-        for faq in generated_faqs:
-            try:
-                qa_id = faq_system.add_pending_qa(
-                    question=faq.get('question', ''),
-                    answer=faq.get('answer', ''),
-                    keywords=faq.get('keywords', ''),
-                    category=faq.get('category', category),
-                    user_question=f"[自動生成] 第2章.pdfから生成" if DEBUG_MODE else f"[自動生成] {uploaded_file.filename}から生成"
-                )
-                added_count += 1
-                print(f"[DEBUG] 承認待ちQ&Aに追加: {qa_id}")
-            except Exception as e:
-                print(f"[DEBUG] 承認待ちQ&A追加エラー: {e}")
-
-        print(f"[DEBUG] {added_count}件のFAQを承認待ちキューに追加しました")
+        # 生成されたFAQをJSON形式で返す（承認待ちキューには追加しない）
+        print(f"[DEBUG] {len(generated_faqs)}件のFAQを生成しました")
 
         return jsonify({
             'success': True,
-            'generated_count': added_count,
-            'total_generated': total_generated,
-            'target_count': num_questions,
-            'message': f'{added_count}件のFAQを生成し、承認待ちキューに追加しました'
+            'generated_count': len(generated_faqs),
+            'faqs': generated_faqs,
+            'message': f'{len(generated_faqs)}件のFAQを生成しました（承認待ちキューには追加されていません）'
         })
 
     except Exception as e:

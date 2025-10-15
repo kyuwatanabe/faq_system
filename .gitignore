@@ -52,6 +52,7 @@ test_*.py
 test_*.txt
 temp_*.html
 SESSION_RESUME_*.md
+ビザFAQ.txt
 
 # Reference documents (optional - remove if you want to include PDFs)
 # reference_docs/  # デバッグ用に一時的にコメントアウト

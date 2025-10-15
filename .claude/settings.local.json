@@ -37,7 +37,18 @@
       "Bash(npx railway:*)",
       "Bash(curl -s \"https://faqsystem-production.up.railway.app/admin/review\" -o temp_review.html)",
       "Bash(cat:*)",
-      "Bash(curl -s \"https://faqsystem-production.up.railway.app/admin/review\")"
+      "Bash(curl -s \"https://faqsystem-production.up.railway.app/admin/review\")",
+      "Bash(dir)",
+      "Bash(del:*)",
+      "Bash(git reset:*)",
+      "Bash(curl -X POST \"https://faqsystem-production.up.railway.app/admin/clear_history\" -H \"Content-Type: application/json\")",
+      "Bash(curl:*)",
+      "Bash(for i in {1..9})",
+      "Bash(iconv:*)",
+      "Bash(dir:*)",
+      "Bash(tee:*)",
+      "Bash(git rm:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []
