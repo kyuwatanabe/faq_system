@@ -495,6 +495,7 @@ def auto_generate_faqs():
 
         # 生成されたFAQを承認待ちキューに追加
         added_count = 0
+        total_generated = len(generated_faqs)
         for faq in generated_faqs:
             try:
                 qa_id = faq_system.add_pending_qa(
@@ -514,6 +515,8 @@ def auto_generate_faqs():
         return jsonify({
             'success': True,
             'generated_count': added_count,
+            'total_generated': total_generated,
+            'target_count': num_questions,
             'message': f'{added_count}件のFAQを生成し、承認待ちキューに追加しました'
         })
 
