@@ -318,9 +318,10 @@
                     .then(response => response.json())
                     .then(progress => {
                         if (progress.status === 'generating') {
+                            const now = Date.now();
+
                             // 直近の生成速度を計算（最後の1件にかかった時間）
                             if (progress.current > lastGeneratedCount) {
-                                const now = Date.now();
                                 const timeDiff = (now - lastGeneratedTime) / 1000;
 
                                 // 直近5件の生成時間を記録
@@ -337,14 +338,16 @@
                             }
 
                             // 待機時間を計算（前のFAQが終わってからの経過時間）
+                            // リトライ中でも常に更新する
                             if (progress.current > 0 && lastGeneratedTime) {
-                                const idleSeconds = Math.floor((Date.now() - lastGeneratedTime) / 1000);
+                                const idleSeconds = Math.floor((now - lastGeneratedTime) / 1000);
                                 idleTimeSpan.textContent = idleSeconds.toFixed(0);
                             } else {
                                 idleTimeSpan.textContent = '--';
                             }
 
                             // 推定終了時刻を計算（直近5件の平均速度を使用）
+                            // 常に進捗メッセージを更新（リトライ中も含む）
                             if (progress.current > 0 && generationTimes.length > 0) {
                                 const remaining = progress.total - progress.current;
                                 // 直近5件の平均速度を計算
@@ -355,12 +358,9 @@
                                 const minutes = estimatedEndTime.getMinutes();
                                 const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 
-                                if (remaining > 0) {
-                                    statusDiv.textContent = `FAQ生成中... 現在${progress.current}/${progress.total}件生成中（推定終了時刻: ${timeString}）`;
-                                } else {
-                                    statusDiv.textContent = `FAQ生成中... 現在${progress.current}/${progress.total}件生成中`;
-                                }
+                                statusDiv.textContent = `FAQ生成中... 現在${progress.current}/${progress.total}件生成中（推定終了時刻: ${timeString}）`;
                             } else {
+                                // リトライ中や初期状態でも進捗を表示
                                 statusDiv.textContent = `FAQ生成中... 現在${progress.current}/${progress.total}件生成中`;
                             }
                         } else if (progress.status === 'interrupted') {
