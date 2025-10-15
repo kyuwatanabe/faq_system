@@ -477,13 +477,14 @@ def auto_generate_faqs():
             faq_system.generation_interrupted = False
 
             # 進捗更新用コールバックを設定
-            def update_progress(current, total, retry_count=0, excluded_windows=0):
+            def update_progress(current, total, retry_count=0, excluded_windows=0, total_windows=0):
                 generation_progress['current'] = current
                 generation_progress['total'] = total
                 generation_progress['status'] = 'generating'
                 generation_progress['retry_count'] = retry_count
                 generation_progress['excluded_windows'] = excluded_windows
-                print(f"[DEBUG] 進捗更新: {current}/{total}, ウィンドウリトライ: {retry_count}, 除外ウィンドウ: {excluded_windows}")
+                generation_progress['total_windows'] = total_windows
+                print(f"[DEBUG] 進捗更新: {current}/{total}, ウィンドウリトライ: {retry_count}, 除外ウィンドウ: {excluded_windows}/{total_windows}")
 
             faq_system.progress_callback = update_progress
 
