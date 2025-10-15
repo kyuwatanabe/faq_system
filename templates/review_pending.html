@@ -473,6 +473,22 @@
                 </div>
             </div>
 
+            <!-- 重複FAQセクション（デバッグ用） -->
+            <div id="duplicates-section" style="margin-bottom: 30px; padding: 20px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 8px; display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin: 0; color: #856404;">🔍 重複判定されたFAQ（デバッグ用）</h3>
+                    <button onclick="clearDuplicates()" class="btn" style="background: #6c757d; color: white; font-size: 12px; padding: 6px 12px;">
+                        🗑️ クリア
+                    </button>
+                </div>
+                <p style="font-size: 13px; color: #856404; margin-bottom: 15px;">
+                    FAQ生成時に重複として判定された質問を表示しています。これを確認して、重複判定が厳しすぎないか確認してください。
+                </p>
+                <div id="duplicates-list" style="max-height: 400px; overflow-y: auto;">
+                    <!-- 重複FAQがここに表示されます -->
+                </div>
+            </div>
+
             <form id="batch-form" method="POST" action="/admin/batch_reject">
                 {% for item in pending_items %}
                 <div class="qa-item {% if item.confirmation_request == '1' %}confirmation-request{% else %}pending{% endif %}" data-qa-id="{{ item.id }}">
@@ -618,6 +634,88 @@
 
         // 初期化
         updateUI();
+
+        // 重複FAQを読み込む
+        async function loadDuplicates() {
+            try {
+                const response = await fetch('/admin/get_duplicates');
+                const data = await response.json();
+
+                if (data.total > 0) {
+                    document.getElementById('duplicates-section').style.display = 'block';
+                    const listEl = document.getElementById('duplicates-list');
+
+                    listEl.innerHTML = data.duplicates.map((dup, index) => `
+                        <div style="background: white; padding: 15px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ddd;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                <span style="background: #dc3545; color: white; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">
+                                    重複 #${index + 1}
+                                </span>
+                                <span style="font-size: 11px; color: #666;">
+                                    ウィンドウ位置: ${dup.window_position} | リトライ: ${dup.window_retry_count}回目
+                                </span>
+                            </div>
+                            <div style="margin-bottom: 10px;">
+                                <div style="font-size: 12px; color: #856404; margin-bottom: 5px;">
+                                    <strong>理由:</strong> ${dup.reason}
+                                </div>
+                                <div style="font-size: 12px; color: #856404; margin-bottom: 5px;">
+                                    <strong>類似度:</strong> ${(dup.similarity * 100).toFixed(1)}%
+                                </div>
+                            </div>
+                            <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-bottom: 8px;">
+                                <div style="font-size: 11px; font-weight: bold; color: #666; margin-bottom: 5px;">生成された質問（重複判定）:</div>
+                                <div style="font-size: 13px; color: #333;">${dup.question}</div>
+                            </div>
+                            <div style="background: #e9ecef; padding: 10px; border-radius: 4px; margin-bottom: 8px;">
+                                <div style="font-size: 11px; font-weight: bold; color: #666; margin-bottom: 5px;">既存の質問（マッチ）:</div>
+                                <div style="font-size: 13px; color: #333;">${dup.matched_with}</div>
+                            </div>
+                            <details style="margin-top: 8px;">
+                                <summary style="cursor: pointer; font-size: 12px; color: #666;">生成された回答を見る</summary>
+                                <div style="background: #fff; padding: 10px; margin-top: 8px; border-radius: 4px; font-size: 12px; color: #555; max-height: 100px; overflow-y: auto;">
+                                    ${dup.answer}
+                                </div>
+                            </details>
+                        </div>
+                    `).join('');
+                } else {
+                    document.getElementById('duplicates-section').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('重複FAQ読み込みエラー:', error);
+            }
+        }
+
+        // 重複FAQをクリア
+        async function clearDuplicates() {
+            if (!confirm('重複FAQリストをクリアしますか？')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/admin/clear_duplicates', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('重複FAQリストをクリアしました');
+                    document.getElementById('duplicates-section').style.display = 'none';
+                } else {
+                    alert('エラーが発生しました');
+                }
+            } catch (error) {
+                console.error('重複FAQクリアエラー:', error);
+                alert('エラーが発生しました');
+            }
+        }
+
+        // ページ読み込み時に重複FAQを取得
+        loadDuplicates();
+
+        // 30秒ごとに重複FAQを更新（FAQ生成中の場合）
+        setInterval(loadDuplicates, 30000);
     </script>
 </body>
 </html>

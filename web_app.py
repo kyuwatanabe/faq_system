@@ -441,6 +441,21 @@ def get_generation_progress():
     """FAQ生成の進捗状況を取得"""
     return jsonify(generation_progress)
 
+@app.route('/admin/get_duplicates', methods=['GET'])
+def get_duplicate_faqs():
+    """重複判定されたFAQのリストを取得（デバッグ用）"""
+    return jsonify({
+        'duplicates': faq_system.duplicate_faqs,
+        'total': len(faq_system.duplicate_faqs)
+    })
+
+@app.route('/admin/clear_duplicates', methods=['POST'])
+def clear_duplicate_faqs():
+    """重複FAQリストをクリア（デバッグ用）"""
+    faq_system.duplicate_faqs = []
+    print("[DEBUG] 重複FAQリストをクリアしました")
+    return jsonify({'success': True, 'message': '重複FAQリストをクリアしました'})
+
 @app.route('/admin/interrupt_generation', methods=['POST'])
 def interrupt_generation():
     """FAQ生成を中断"""

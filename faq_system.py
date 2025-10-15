@@ -17,6 +17,7 @@ class FAQSystem:
         self.claude_api_key = None  # web_app.pyから設定される
         self.generation_interrupted = False  # 生成中断フラグ
         self.progress_callback = None  # 進捗報告用コールバック
+        self.duplicate_faqs = []  # 重複判定されたFAQのリスト（デバッグ用）
         self.load_faq_data(csv_file)
         self.load_pending_qa()
 
@@ -1061,6 +1062,16 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
                                     if similarity >= 0.85:
                                         # 文字列がほぼ同一 → 重複
                                         print(f"[DEBUG] 生成試行 {generation_attempt} FAQをスキップ（既存と完全重複 {similarity:.2f}）: {current_question[:40]}...")
+                                        # 重複FAQを記録（デバッグ用）
+                                        self.duplicate_faqs.append({
+                                            'question': current_question,
+                                            'answer': current_answer,
+                                            'similarity': similarity,
+                                            'matched_with': existing_q,
+                                            'window_position': selected_position,
+                                            'window_retry_count': window_duplicate_count.get(selected_position, 0) + 1,
+                                            'reason': '既存と完全重複（類似度 >= 0.85）'
+                                        })
                                         is_duplicate = True
                                         break
                                     elif similarity >= 0.60:
@@ -1070,6 +1081,16 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
 
                                         if keywords_new == keywords_existing:
                                             print(f"[DEBUG] 生成試行 {generation_attempt} FAQをスキップ（既存と重複 {similarity:.2f}, キーワード一致）: {current_question[:40]}...")
+                                            # 重複FAQを記録（デバッグ用）
+                                            self.duplicate_faqs.append({
+                                                'question': current_question,
+                                                'answer': current_answer,
+                                                'similarity': similarity,
+                                                'matched_with': existing_q,
+                                                'window_position': selected_position,
+                                                'window_retry_count': window_duplicate_count.get(selected_position, 0) + 1,
+                                                'reason': f'既存と重複（類似度: {similarity:.2f}, キーワード一致）'
+                                            })
                                             is_duplicate = True
                                             break
                                         else:
@@ -1082,6 +1103,16 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
 
                                         if similarity >= 0.85:
                                             print(f"[DEBUG] 生成試行 {generation_attempt} FAQをスキップ（生成済みと完全重複 {similarity:.2f}）: {current_question[:40]}...")
+                                            # 重複FAQを記録（デバッグ用）
+                                            self.duplicate_faqs.append({
+                                                'question': current_question,
+                                                'answer': current_answer,
+                                                'similarity': similarity,
+                                                'matched_with': already_added.get('question', ''),
+                                                'window_position': selected_position,
+                                                'window_retry_count': window_duplicate_count.get(selected_position, 0) + 1,
+                                                'reason': '生成済みと完全重複（類似度 >= 0.85）'
+                                            })
                                             is_duplicate = True
                                             break
                                         elif similarity >= 0.60:
@@ -1090,6 +1121,16 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
 
                                             if keywords_new == keywords_added:
                                                 print(f"[DEBUG] 生成試行 {generation_attempt} FAQをスキップ（生成済みと重複 {similarity:.2f}, キーワード一致）: {current_question[:40]}...")
+                                                # 重複FAQを記録（デバッグ用）
+                                                self.duplicate_faqs.append({
+                                                    'question': current_question,
+                                                    'answer': current_answer,
+                                                    'similarity': similarity,
+                                                    'matched_with': already_added.get('question', ''),
+                                                    'window_position': selected_position,
+                                                    'window_retry_count': window_duplicate_count.get(selected_position, 0) + 1,
+                                                    'reason': f'生成済みと重複（類似度: {similarity:.2f}, キーワード一致）'
+                                                })
                                                 is_duplicate = True
                                                 break
 
