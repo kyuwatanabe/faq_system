@@ -1073,7 +1073,15 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
                                     # 進捗を更新（progress_callbackが設定されている場合）
                                     if self.progress_callback:
                                         current_window_retry = window_duplicate_count.get(selected_position, 0)
-                                        self.progress_callback(len(all_faqs), num_questions, current_window_retry, len(excluded_windows), total_windows)
+                                        self.progress_callback(
+                                            len(all_faqs),
+                                            num_questions,
+                                            current_window_retry,
+                                            len(excluded_windows),
+                                            total_windows,
+                                            window_pair['q_range'],
+                                            window_pair['a_range']
+                                        )
 
                         except json.JSONDecodeError as e:
                             print(f"[ERROR] 生成試行 {generation_attempt} JSONパースエラー: {e}")

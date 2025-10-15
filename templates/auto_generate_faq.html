@@ -269,6 +269,10 @@
                         ウィンドウリトライ: <span id="retryCount">0</span>/<span id="maxRetries">10</span>回 |
                         除外ウィンドウ: <span id="excludedWindows">0</span>/<span id="totalWindows">--</span>個
                     </div>
+                    <div id="windowRangeDisplay" style="margin-top: 5px; font-size: 13px; color: #0c5460; display: none;">
+                        質問範囲: <span id="questionRange">--</span> |
+                        回答範囲: <span id="answerRange">--</span>
+                    </div>
                     <div id="generateStatus" class="generate-status"></div>
                 </form>
 
@@ -292,6 +296,7 @@
             const statusDiv = document.getElementById('generateStatus');
             const timerDisplay = document.getElementById('timerDisplay');
             const retryDisplay = document.getElementById('retryDisplay');
+            const windowRangeDisplay = document.getElementById('windowRangeDisplay');
             const elapsedTimeSpan = document.getElementById('elapsedTime');
             const idleTimeSpan = document.getElementById('idleTime');
             const generationSpeedSpan = document.getElementById('generationSpeed');
@@ -299,6 +304,8 @@
             const maxRetriesSpan = document.getElementById('maxRetries');
             const excludedWindowsSpan = document.getElementById('excludedWindows');
             const totalWindowsSpan = document.getElementById('totalWindows');
+            const questionRangeSpan = document.getElementById('questionRange');
+            const answerRangeSpan = document.getElementById('answerRange');
 
             // ボタンを無効化してローディング表示
             const selectedCount = document.getElementById('numQuestions').value;
@@ -329,15 +336,20 @@
                         if (progress.status === 'generating') {
                             const now = Date.now();
 
-                            // ウィンドウ情報を表示
-                            if (progress.retry_count > 0 || progress.excluded_windows > 0) {
-                                retryDisplay.style.display = 'block';
-                                retryCountSpan.textContent = progress.retry_count || 0;
-                                maxRetriesSpan.textContent = progress.max_retries || 10;
-                                excludedWindowsSpan.textContent = progress.excluded_windows || 0;
-                                totalWindowsSpan.textContent = progress.total_windows || '--';
+                            // ウィンドウ情報を表示（常に表示）
+                            retryDisplay.style.display = 'block';
+                            retryCountSpan.textContent = progress.retry_count || 0;
+                            maxRetriesSpan.textContent = progress.max_retries || 10;
+                            excludedWindowsSpan.textContent = progress.excluded_windows || 0;
+                            totalWindowsSpan.textContent = progress.total_windows || '--';
+
+                            // ウィンドウ範囲情報を表示
+                            if (progress.question_range || progress.answer_range) {
+                                windowRangeDisplay.style.display = 'block';
+                                questionRangeSpan.textContent = progress.question_range || '--';
+                                answerRangeSpan.textContent = progress.answer_range || '--';
                             } else {
-                                retryDisplay.style.display = 'none';
+                                windowRangeDisplay.style.display = 'none';
                             }
 
                             // 直近の生成速度を計算（最後の1件にかかった時間）

@@ -20,7 +20,9 @@ generation_progress = {
     'retry_count': 0,  # 現在のウィンドウリトライ回数
     'max_retries': 10,  # 最大リトライ回数（ウィンドウごと）
     'excluded_windows': 0,  # 除外されたウィンドウ数
-    'total_windows': 0  # 総ウィンドウ数
+    'total_windows': 0,  # 総ウィンドウ数
+    'question_range': '',  # 質問ウィンドウ範囲
+    'answer_range': ''  # 回答ウィンドウ範囲
 }
 
 @app.route('/')
@@ -477,14 +479,16 @@ def auto_generate_faqs():
             faq_system.generation_interrupted = False
 
             # 進捗更新用コールバックを設定
-            def update_progress(current, total, retry_count=0, excluded_windows=0, total_windows=0):
+            def update_progress(current, total, retry_count=0, excluded_windows=0, total_windows=0, question_range='', answer_range=''):
                 generation_progress['current'] = current
                 generation_progress['total'] = total
                 generation_progress['status'] = 'generating'
                 generation_progress['retry_count'] = retry_count
                 generation_progress['excluded_windows'] = excluded_windows
                 generation_progress['total_windows'] = total_windows
-                print(f"[DEBUG] 進捗更新: {current}/{total}, ウィンドウリトライ: {retry_count}, 除外ウィンドウ: {excluded_windows}/{total_windows}")
+                generation_progress['question_range'] = question_range
+                generation_progress['answer_range'] = answer_range
+                print(f"[DEBUG] 進捗更新: {current}/{total}, ウィンドウリトライ: {retry_count}, 除外ウィンドウ: {excluded_windows}/{total_windows}, 質問範囲: {question_range}")
 
             faq_system.progress_callback = update_progress
 
