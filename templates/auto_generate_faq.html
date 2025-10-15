@@ -405,13 +405,14 @@
                         }
                     })
                     .catch(error => {
-                        console.log('進捗取得エラー:', error);
+                        console.error('進捗取得エラー:', error);
+                        // エラーが発生してもポーリングは継続（サーバーが一時的に応答しない可能性があるため）
                     });
             }, 1000); // 1秒ごとにポーリング
 
-            // タイムアウト設定（5分 = 300秒）
+            // タイムアウト設定（30分 = 1800秒）
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 300000);
+            const timeoutId = setTimeout(() => controller.abort(), 1800000);
 
             fetch('/admin/auto_generate', {
                 method: 'POST',
