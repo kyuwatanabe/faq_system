@@ -769,6 +769,7 @@ class FAQSystem:
             # ウィンドウごとの連続重複カウンター（10回重複で除外）
             window_duplicate_count = {}
             excluded_windows = set()  # 除外済みウィンドウ位置
+            window_rejected_questions = {}  # ウィンドウごとに重複判定された質問リスト
 
             # 既存のFAQと承認待ちFAQの両方をチェック
             existing_questions = [faq['question'] for faq in self.faq_data]
@@ -833,19 +834,35 @@ class FAQSystem:
 
                 print(f"\n[DEBUG] 生成試行 {generation_attempt} (位置: {selected_position}, 質問範囲: {window_pair['q_range']}, 進捗: {len(all_faqs)}/{num_questions})...")
 
+                # このウィンドウで重複判定された質問の情報を取得
+                rejected_questions_text = ""
+                if selected_position in window_rejected_questions and window_rejected_questions[selected_position]:
+                    rejected_questions_text = f"""
+
+【重要：このウィンドウで既に重複判定された質問】
+以下の質問は既に生成されましたが、重複として判定されました。
+これらとは全く異なる視点・表現・焦点で質問を作成してください。
+
+"""
+                    for i, rejected_q in enumerate(window_rejected_questions[selected_position], 1):
+                        rejected_questions_text += f"{i}. {rejected_q}\n"
+
+                    rejected_questions_text += "\n上記とは完全に異なる質問を作成してください。同じトピックでも、異なる角度・表現・焦点で質問してください。\n"
+
                 # 2段階ウィンドウ専用のプロンプト作成
                 prompt = f"""
 あなたはアメリカビザ専門のFAQシステムのコンテンツ生成エキスパートです。
 
 {existing_context}
+{rejected_questions_text}
 
 【タスク】
 FAQを1個生成してください。**必ず以下の手順で生成すること**：
 
 **ステップ1: 質問の生成**
-以下の「質問生成範囲」から、1つの明確なトピックを選んで質問を作成してください。
+以下の「質問生成範囲」から質問を作成してください。
 
-【質問生成範囲】（この{question_window}文字から1つのトピックを選ぶ）
+【質問生成範囲】（この{question_window}文字から質問を作成）
 {window_pair['question_text']}
 
 **ステップ2: 回答の生成**
@@ -1072,6 +1089,10 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
                                             'window_retry_count': window_duplicate_count.get(selected_position, 0) + 1,
                                             'reason': '既存と完全重複（類似度 >= 0.85）'
                                         })
+                                        # このウィンドウの重複質問リストに追加
+                                        if selected_position not in window_rejected_questions:
+                                            window_rejected_questions[selected_position] = []
+                                        window_rejected_questions[selected_position].append(current_question)
                                         is_duplicate = True
                                         break
                                     elif similarity >= 0.60:
@@ -1091,6 +1112,10 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
                                                 'window_retry_count': window_duplicate_count.get(selected_position, 0) + 1,
                                                 'reason': f'既存と重複（類似度: {similarity:.2f}, キーワード一致）'
                                             })
+                                            # このウィンドウの重複質問リストに追加
+                                            if selected_position not in window_rejected_questions:
+                                                window_rejected_questions[selected_position] = []
+                                            window_rejected_questions[selected_position].append(current_question)
                                             is_duplicate = True
                                             break
                                         else:
@@ -1113,6 +1138,10 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
                                                 'window_retry_count': window_duplicate_count.get(selected_position, 0) + 1,
                                                 'reason': '生成済みと完全重複（類似度 >= 0.85）'
                                             })
+                                            # このウィンドウの重複質問リストに追加
+                                            if selected_position not in window_rejected_questions:
+                                                window_rejected_questions[selected_position] = []
+                                            window_rejected_questions[selected_position].append(current_question)
                                             is_duplicate = True
                                             break
                                         elif similarity >= 0.60:
@@ -1131,6 +1160,10 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
                                                     'window_retry_count': window_duplicate_count.get(selected_position, 0) + 1,
                                                     'reason': f'生成済みと重複（類似度: {similarity:.2f}, キーワード一致）'
                                                 })
+                                                # このウィンドウの重複質問リストに追加
+                                                if selected_position not in window_rejected_questions:
+                                                    window_rejected_questions[selected_position] = []
+                                                window_rejected_questions[selected_position].append(current_question)
                                                 is_duplicate = True
                                                 break
 
