@@ -1039,8 +1039,14 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
                                 dup_check_start = time.time()
                                 print(f"[TIME] 重複チェック開始 (既存質問数: {len(unique_questions)}件)...")
 
-                                # 既存FAQとの重複チェック
+                                # 既存FAQとの重複チェック（最適化版：早期リターン）
+                                checked_count = 0
                                 for existing_q in unique_questions:
+                                    checked_count += 1
+                                    # 進捗を100件ごとに表示
+                                    if checked_count % 100 == 0:
+                                        print(f"[TIME] 重複チェック進捗: {checked_count}/{len(unique_questions)}件チェック済み")
+
                                     similarity = self.calculate_similarity(current_question, existing_q)
 
                                     # キーワードベースの判定
