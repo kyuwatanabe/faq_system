@@ -301,6 +301,7 @@
             timerDisplay.style.display = 'block';
             let startTime = Date.now();
             let lastGeneratedCount = 0;
+            let lastGeneratedTime = Date.now();
             let timerInterval = setInterval(() => {
                 const elapsed = Math.floor((Date.now() - startTime) / 1000);
                 const minutes = Math.floor(elapsed / 60);
@@ -314,24 +315,34 @@
                     .then(response => response.json())
                     .then(progress => {
                         if (progress.status === 'generating') {
-                            statusDiv.textContent = `FAQ生成中... 現在${progress.current}/${progress.total}件生成中`;
+                            // 直近の生成速度を計算（最後の1件にかかった時間）
+                            if (progress.current > lastGeneratedCount) {
+                                const now = Date.now();
+                                const timeDiff = (now - lastGeneratedTime) / 1000;
+                                generationSpeedSpan.textContent = timeDiff.toFixed(1);
+                                lastGeneratedTime = now;
+                                lastGeneratedCount = progress.current;
+                            } else if (progress.current === 0) {
+                                generationSpeedSpan.textContent = '--';
+                            }
 
-                            // 生成速度を計算（1件あたりの秒数）
-                            if (progress.current > 0) {
-                                const elapsed = Math.floor((Date.now() - startTime) / 1000);
-                                const speedPerItem = (elapsed / progress.current).toFixed(1);
-                                generationSpeedSpan.textContent = speedPerItem;
-
-                                // 推定残り時間も計算
+                            // 推定終了時刻を計算
+                            if (progress.current > 0 && generationSpeedSpan.textContent !== '--') {
                                 const remaining = progress.total - progress.current;
-                                const estimatedSeconds = remaining * speedPerItem;
-                                const estMinutes = Math.floor(estimatedSeconds / 60);
-                                const estSeconds = Math.floor(estimatedSeconds % 60);
+                                const currentSpeed = parseFloat(generationSpeedSpan.textContent);
+                                const estimatedSecondsRemaining = remaining * currentSpeed;
+                                const estimatedEndTime = new Date(Date.now() + estimatedSecondsRemaining * 1000);
+                                const hours = estimatedEndTime.getHours();
+                                const minutes = estimatedEndTime.getMinutes();
+                                const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+
                                 if (remaining > 0) {
-                                    statusDiv.textContent = `FAQ生成中... 現在${progress.current}/${progress.total}件生成中（推定残り時間: ${estMinutes}:${String(estSeconds).padStart(2, '0')}）`;
+                                    statusDiv.textContent = `FAQ生成中... 現在${progress.current}/${progress.total}件生成中（推定終了時刻: ${timeString}）`;
+                                } else {
+                                    statusDiv.textContent = `FAQ生成中... 現在${progress.current}/${progress.total}件生成中`;
                                 }
                             } else {
-                                generationSpeedSpan.textContent = '--';
+                                statusDiv.textContent = `FAQ生成中... 現在${progress.current}/${progress.total}件生成中`;
                             }
                         } else if (progress.status === 'interrupted') {
                             clearInterval(pollingInterval);
