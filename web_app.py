@@ -452,7 +452,7 @@ def auto_generate_faqs():
         if DEBUG_MODE:
             print("[DEBUG] デバッグモード: 第2章.pdfを使用")
             pdf_path = os.path.join(os.path.dirname(__file__), 'reference_docs', '第2章.pdf')
-            num_questions = 10
+            num_questions = int(request.form.get('num_questions', 10))
             category = 'AI生成'
 
             if not os.path.exists(pdf_path):
