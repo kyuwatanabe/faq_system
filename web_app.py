@@ -493,30 +493,15 @@ def auto_generate_faqs():
         if not generated_faqs:
             return jsonify({'success': False, 'message': 'FAQの生成に失敗しました'})
 
-        # 承認待ちキューに追加
-        added_count = 0
-        for faq in generated_faqs:
-            try:
-                qa_id = faq_system.add_pending_qa(
-                    question=faq.get('question', ''),
-                    answer=faq.get('answer', ''),
-                    keywords=faq.get('keywords', ''),
-                    category=faq.get('category', category),
-                    user_question=f"[自動生成] 第2章.pdfから生成" if DEBUG_MODE else f"[自動生成] {uploaded_file.filename}から生成"
-                )
-                added_count += 1
-                print(f"[DEBUG] 承認待ちQ&Aに追加: {qa_id}")
-            except Exception as e:
-                print(f"[DEBUG] 承認待ちQ&A追加エラー: {e}")
+        # 生成されたFAQをJSON形式で返す（承認待ちキューには追加しない）
+        print(f"[DEBUG] {len(generated_faqs)}件のFAQを生成しました")
 
-        if added_count > 0:
-            return jsonify({
-                'success': True,
-                'generated_count': added_count,
-                'message': f'{added_count}件のQ&Aを承認待ちキューに追加しました'
-            })
-        else:
-            return jsonify({'success': False, 'message': '承認待ちキューへの追加に失敗しました'})
+        return jsonify({
+            'success': True,
+            'generated_count': len(generated_faqs),
+            'faqs': generated_faqs,
+            'message': f'{len(generated_faqs)}件のFAQを生成しました（承認待ちキューには追加されていません）'
+        })
 
     except Exception as e:
         print(f"[DEBUG] FAQ自動生成エラー: {e}")
