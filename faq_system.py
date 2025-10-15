@@ -1068,15 +1068,17 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
             max_retry_attempts = 20
             consecutive_failures = 0
             max_consecutive_failures = 30
+            retry_count = 0  # リトライ回数をカウント
 
-            while len(all_faqs) < num_questions and consecutive_failures < max_consecutive_failures:
+            while len(all_faqs) < num_questions and consecutive_failures < max_consecutive_failures and retry_count < max_retry_attempts:
                 # 中断チェック
                 if self.generation_interrupted:
                     print(f"[INFO] FAQ生成が中断されました（{len(all_faqs)}件生成済み）")
                     break
 
-                retry_attempt = len(window_pairs) + consecutive_failures + 1
-                print(f"\n[DEBUG] 追加生成試行 {retry_attempt}: 目標{num_questions}件 / 現在{len(all_faqs)}件")
+                retry_count += 1
+                retry_attempt = len(window_pairs) + retry_count
+                print(f"\n[DEBUG] 追加生成試行 {retry_attempt} (リトライ{retry_count}/{max_retry_attempts}): 目標{num_questions}件 / 現在{len(all_faqs)}件")
 
                 # 新しいランダムウィンドウを生成
                 if possible_positions:
