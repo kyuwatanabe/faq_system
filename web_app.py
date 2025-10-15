@@ -3,6 +3,7 @@ from faq_system import FAQSystem, find_similar_faqs
 import json
 import datetime
 import os
+import threading
 from dotenv import load_dotenv
 
 # .envファイルから環境変数を読み込む
@@ -474,6 +475,8 @@ def auto_generate_faqs():
             generation_progress['max_retries'] = 10  # ウィンドウごとの最大リトライ回数
             generation_progress['excluded_windows'] = 0
             generation_progress['total_windows'] = 0
+            generation_progress['question_range'] = ''
+            generation_progress['answer_range'] = ''
 
             # 中断フラグをリセット
             faq_system.generation_interrupted = False
@@ -492,14 +495,60 @@ def auto_generate_faqs():
 
             faq_system.progress_callback = update_progress
 
-            # FAQ生成
-            generated_faqs = faq_system.generate_faqs_from_document(pdf_path, num_questions, category)
+            # バックグラウンドスレッドでFAQ生成を実行
+            def generate_in_background():
+                try:
+                    print("[DEBUG] バックグラウンドスレッドでFAQ生成開始")
+                    generated_faqs = faq_system.generate_faqs_from_document(pdf_path, num_questions, category)
 
-            # 生成完了（中断されていない場合のみ）
-            if not faq_system.generation_interrupted:
-                generation_progress['status'] = 'completed'
-            else:
-                generation_progress['status'] = 'interrupted'
+                    # 生成完了（中断されていない場合のみ）
+                    if not faq_system.generation_interrupted:
+                        generation_progress['status'] = 'completed'
+                    else:
+                        generation_progress['status'] = 'interrupted'
+                        print("[DEBUG] FAQ生成が中断されました")
+                        return
+
+                    if not generated_faqs:
+                        generation_progress['status'] = 'error'
+                        print("[DEBUG] FAQ生成失敗: 生成されたFAQがありません")
+                        return
+
+                    # 生成されたFAQを承認待ちキューに追加
+                    added_count = 0
+                    total_generated = len(generated_faqs)
+                    for faq in generated_faqs:
+                        try:
+                            qa_id = faq_system.add_pending_qa(
+                                question=faq.get('question', ''),
+                                answer=faq.get('answer', ''),
+                                keywords=faq.get('keywords', ''),
+                                category=faq.get('category', category),
+                                user_question=f"[自動生成] 第2章.pdfから生成"
+                            )
+                            added_count += 1
+                            print(f"[DEBUG] 承認待ちQ&Aに追加: {qa_id}")
+                        except Exception as e:
+                            print(f"[DEBUG] 承認待ちQ&A追加エラー: {e}")
+
+                    print(f"[DEBUG] {added_count}件のFAQを承認待ちキューに追加しました")
+
+                except Exception as e:
+                    print(f"[DEBUG] バックグラウンドFAQ生成エラー: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    generation_progress['status'] = 'error'
+
+            # スレッドを起動
+            thread = threading.Thread(target=generate_in_background)
+            thread.daemon = True
+            thread.start()
+
+            # 即座にレスポンスを返す（Railway タイムアウト回避）
+            return jsonify({
+                'success': True,
+                'message': 'FAQ生成を開始しました。進捗は画面で確認できます。'
+            })
         else:
             # 通常モード: ファイルアップロードの処理
             uploaded_file = request.files.get('source_file')
@@ -531,52 +580,100 @@ def auto_generate_faqs():
             temp_filename = f"uploaded_pdf_{uuid.uuid4().hex[:8]}_{uploaded_file.filename}"
             pdf_path = os.path.join(temp_dir, temp_filename)
 
-            try:
-                # アップロードされたファイルを保存
-                uploaded_file.save(pdf_path)
-                print(f"[DEBUG] FAQ自動生成開始 - ファイル: {uploaded_file.filename}, 数: {num_questions}")
+            # アップロードされたファイルを保存
+            uploaded_file.save(pdf_path)
+            print(f"[DEBUG] FAQ自動生成開始 - ファイル: {uploaded_file.filename}, 数: {num_questions}")
 
-                # FAQ生成
-                generated_faqs = faq_system.generate_faqs_from_document(pdf_path, num_questions, category)
+            # 進捗状況を初期化
+            generation_progress['current'] = 0
+            generation_progress['total'] = num_questions
+            generation_progress['status'] = 'generating'
+            generation_progress['retry_count'] = 0
+            generation_progress['max_retries'] = 10
+            generation_progress['excluded_windows'] = 0
+            generation_progress['total_windows'] = 0
+            generation_progress['question_range'] = ''
+            generation_progress['answer_range'] = ''
 
-            finally:
-                # 一時ファイルをクリーンアップ（通常モードのみ）
+            # 中断フラグをリセット
+            faq_system.generation_interrupted = False
+
+            # 進捗更新用コールバックを設定
+            def update_progress(current, total, retry_count=0, excluded_windows=0, total_windows=0, question_range='', answer_range=''):
+                generation_progress['current'] = current
+                generation_progress['total'] = total
+                generation_progress['status'] = 'generating'
+                generation_progress['retry_count'] = retry_count
+                generation_progress['excluded_windows'] = excluded_windows
+                generation_progress['total_windows'] = total_windows
+                generation_progress['question_range'] = question_range
+                generation_progress['answer_range'] = answer_range
+                print(f"[DEBUG] 進捗更新: {current}/{total}, ウィンドウリトライ: {retry_count}, 除外ウィンドウ: {excluded_windows}/{total_windows}, 質問範囲: {question_range}")
+
+            faq_system.progress_callback = update_progress
+
+            # バックグラウンドスレッドでFAQ生成を実行
+            def generate_in_background():
                 try:
-                    if os.path.exists(pdf_path):
-                        os.remove(pdf_path)
-                        print(f"[DEBUG] 一時ファイル削除: {pdf_path}")
-                except Exception as cleanup_error:
-                    print(f"[DEBUG] 一時ファイル削除エラー: {cleanup_error}")
+                    print("[DEBUG] バックグラウンドスレッドでFAQ生成開始（通常モード）")
+                    generated_faqs = faq_system.generate_faqs_from_document(pdf_path, num_questions, category)
 
-        if not generated_faqs:
-            return jsonify({'success': False, 'message': 'FAQの生成に失敗しました'})
+                    # 一時ファイルをクリーンアップ
+                    try:
+                        if os.path.exists(pdf_path):
+                            os.remove(pdf_path)
+                            print(f"[DEBUG] 一時ファイル削除: {pdf_path}")
+                    except Exception as cleanup_error:
+                        print(f"[DEBUG] 一時ファイル削除エラー: {cleanup_error}")
 
-        # 生成されたFAQを承認待ちキューに追加
-        added_count = 0
-        total_generated = len(generated_faqs)
-        for faq in generated_faqs:
-            try:
-                qa_id = faq_system.add_pending_qa(
-                    question=faq.get('question', ''),
-                    answer=faq.get('answer', ''),
-                    keywords=faq.get('keywords', ''),
-                    category=faq.get('category', category),
-                    user_question=f"[自動生成] 第2章.pdfから生成" if DEBUG_MODE else f"[自動生成] {uploaded_file.filename}から生成"
-                )
-                added_count += 1
-                print(f"[DEBUG] 承認待ちQ&Aに追加: {qa_id}")
-            except Exception as e:
-                print(f"[DEBUG] 承認待ちQ&A追加エラー: {e}")
+                    # 生成完了（中断されていない場合のみ）
+                    if not faq_system.generation_interrupted:
+                        generation_progress['status'] = 'completed'
+                    else:
+                        generation_progress['status'] = 'interrupted'
+                        print("[DEBUG] FAQ生成が中断されました")
+                        return
 
-        print(f"[DEBUG] {added_count}件のFAQを承認待ちキューに追加しました")
+                    if not generated_faqs:
+                        generation_progress['status'] = 'error'
+                        print("[DEBUG] FAQ生成失敗: 生成されたFAQがありません")
+                        return
 
-        return jsonify({
-            'success': True,
-            'generated_count': added_count,
-            'total_generated': total_generated,
-            'target_count': num_questions,
-            'message': f'{added_count}件のFAQを生成し、承認待ちキューに追加しました'
-        })
+                    # 生成されたFAQを承認待ちキューに追加
+                    added_count = 0
+                    total_generated = len(generated_faqs)
+                    for faq in generated_faqs:
+                        try:
+                            qa_id = faq_system.add_pending_qa(
+                                question=faq.get('question', ''),
+                                answer=faq.get('answer', ''),
+                                keywords=faq.get('keywords', ''),
+                                category=faq.get('category', category),
+                                user_question=f"[自動生成] {uploaded_file.filename}から生成"
+                            )
+                            added_count += 1
+                            print(f"[DEBUG] 承認待ちQ&Aに追加: {qa_id}")
+                        except Exception as e:
+                            print(f"[DEBUG] 承認待ちQ&A追加エラー: {e}")
+
+                    print(f"[DEBUG] {added_count}件のFAQを承認待ちキューに追加しました")
+
+                except Exception as e:
+                    print(f"[DEBUG] バックグラウンドFAQ生成エラー: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    generation_progress['status'] = 'error'
+
+            # スレッドを起動
+            thread = threading.Thread(target=generate_in_background)
+            thread.daemon = True
+            thread.start()
+
+            # 即座にレスポンスを返す（Railway タイムアウト回避）
+            return jsonify({
+                'success': True,
+                'message': 'FAQ生成を開始しました。進捗は画面で確認できます。'
+            })
 
     except Exception as e:
         print(f"[DEBUG] FAQ自動生成エラー: {e}")

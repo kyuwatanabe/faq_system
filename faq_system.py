@@ -1007,6 +1007,19 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
                                     if window_duplicate_count[selected_position] >= 10:
                                         excluded_windows.add(selected_position)
                                         print(f"[DEBUG] ウィンドウ位置 {selected_position} を除外（連続10回重複）")
+
+                                    # 進捗を更新（リトライ情報を表示）
+                                    if self.progress_callback:
+                                        current_window_retry = window_duplicate_count.get(selected_position, 0)
+                                        self.progress_callback(
+                                            len(all_faqs),
+                                            num_questions,
+                                            current_window_retry,
+                                            len(excluded_windows),
+                                            total_windows,
+                                            window_pair['q_range'],
+                                            window_pair['a_range']
+                                        )
                                     continue
 
                                 # 重複チェック（キーワードベース）
@@ -1062,6 +1075,19 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
                                     if window_duplicate_count[selected_position] >= 10:
                                         excluded_windows.add(selected_position)
                                         print(f"[DEBUG] ウィンドウ位置 {selected_position} を除外（連続10回重複）")
+
+                                    # 進捗を更新（リトライ情報を表示）
+                                    if self.progress_callback:
+                                        current_window_retry = window_duplicate_count.get(selected_position, 0)
+                                        self.progress_callback(
+                                            len(all_faqs),
+                                            num_questions,
+                                            current_window_retry,
+                                            len(excluded_windows),
+                                            total_windows,
+                                            window_pair['q_range'],
+                                            window_pair['a_range']
+                                        )
                                 else:
                                     # 重複なし →  FAQを追加し、ウィンドウの重複カウントをリセット
                                     all_faqs.append(faq)
