@@ -1067,7 +1067,7 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
             # 生成数が足りない場合はリトライ（最大20回まで）
             max_retry_attempts = 20
             consecutive_failures = 0
-            max_consecutive_failures = 10
+            max_consecutive_failures = 30
 
             while len(all_faqs) < num_questions and consecutive_failures < max_consecutive_failures:
                 # 中断チェック

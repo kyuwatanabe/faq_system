@@ -262,6 +262,7 @@
                     </div>
                     <div id="timerDisplay" style="margin-top: 10px; font-size: 14px; color: #666; display: none;">
                         経過時間: <span id="elapsedTime">00:00</span> |
+                        待機時間: <span id="idleTime">--</span>秒 |
                         生成速度: <span id="generationSpeed">--</span>秒/件
                     </div>
                     <div id="generateStatus" class="generate-status"></div>
@@ -287,6 +288,7 @@
             const statusDiv = document.getElementById('generateStatus');
             const timerDisplay = document.getElementById('timerDisplay');
             const elapsedTimeSpan = document.getElementById('elapsedTime');
+            const idleTimeSpan = document.getElementById('idleTime');
             const generationSpeedSpan = document.getElementById('generationSpeed');
 
             // ボタンを無効化してローディング表示
@@ -324,6 +326,14 @@
                                 lastGeneratedCount = progress.current;
                             } else if (progress.current === 0) {
                                 generationSpeedSpan.textContent = '--';
+                            }
+
+                            // 待機時間を計算（前のFAQが終わってからの経過時間）
+                            if (progress.current > 0 && lastGeneratedTime) {
+                                const idleSeconds = Math.floor((Date.now() - lastGeneratedTime) / 1000);
+                                idleTimeSpan.textContent = idleSeconds.toFixed(0);
+                            } else {
+                                idleTimeSpan.textContent = '--';
                             }
 
                             // 推定終了時刻を計算
