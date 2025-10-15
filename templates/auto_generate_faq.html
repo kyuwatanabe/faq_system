@@ -305,18 +305,7 @@
             .then(data => {
                 if (data.success) {
                     statusDiv.className = 'generate-status success';
-                    let message = `<strong>✓ 生成完了！</strong><br>`;
-                    message += `<div style="margin: 10px 0; padding: 10px; background: rgba(0,124,57,0.1); border-radius: 5px;">`;
-                    message += `📊 <strong>生成結果:</strong><br>`;
-                    message += `・目標数: ${data.target_count}件<br>`;
-                    message += `・生成数: ${data.total_generated}件<br>`;
-                    message += `・承認待ちキューに追加: ${data.generated_count}件`;
-                    message += `</div>`;
-                    if (data.total_generated < data.target_count) {
-                        message += `<div style="color: #856404; margin: 5px 0;">⚠️ 重複または回答不可能な質問が多く、目標数に達しませんでした</div>`;
-                    }
-                    message += `<a href="/admin/review" style="color: #007c39; text-decoration: underline; font-weight: bold;">📋 承認待ちFAQを確認する</a>`;
-                    statusDiv.innerHTML = message;
+                    statusDiv.innerHTML = `<strong>✓ 生成完了！</strong><br><a href="/admin/review" style="color: #007c39; text-decoration: underline; font-weight: bold;">📋 承認待ちFAQを確認する</a>`;
                 } else {
                     statusDiv.className = 'generate-status error';
                     statusDiv.textContent = `エラー: ${data.message}`;
