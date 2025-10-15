@@ -265,6 +265,10 @@
                         待機時間: <span id="idleTime">--</span>秒 |
                         生成速度: <span id="generationSpeed">--</span>秒/件
                     </div>
+                    <div id="retryDisplay" style="margin-top: 5px; font-size: 13px; color: #f57c00; display: none;">
+                        リトライ: <span id="retryCount">0</span>/<span id="maxRetries">20</span>回 |
+                        連続失敗: <span id="consecutiveFailures">0</span>/30回
+                    </div>
                     <div id="generateStatus" class="generate-status"></div>
                 </form>
 
@@ -287,9 +291,13 @@
             const interruptBtn = document.getElementById('interruptBtn');
             const statusDiv = document.getElementById('generateStatus');
             const timerDisplay = document.getElementById('timerDisplay');
+            const retryDisplay = document.getElementById('retryDisplay');
             const elapsedTimeSpan = document.getElementById('elapsedTime');
             const idleTimeSpan = document.getElementById('idleTime');
             const generationSpeedSpan = document.getElementById('generationSpeed');
+            const retryCountSpan = document.getElementById('retryCount');
+            const maxRetriesSpan = document.getElementById('maxRetries');
+            const consecutiveFailuresSpan = document.getElementById('consecutiveFailures');
 
             // ボタンを無効化してローディング表示
             const selectedCount = document.getElementById('numQuestions').value;
@@ -319,6 +327,16 @@
                     .then(progress => {
                         if (progress.status === 'generating') {
                             const now = Date.now();
+
+                            // リトライ状況を表示
+                            if (progress.retry_count > 0) {
+                                retryDisplay.style.display = 'block';
+                                retryCountSpan.textContent = progress.retry_count;
+                                maxRetriesSpan.textContent = progress.max_retries || 20;
+                                consecutiveFailuresSpan.textContent = progress.consecutive_failures || 0;
+                            } else {
+                                retryDisplay.style.display = 'none';
+                            }
 
                             // 直近の生成速度を計算（最後の1件にかかった時間）
                             if (progress.current > lastGeneratedCount) {

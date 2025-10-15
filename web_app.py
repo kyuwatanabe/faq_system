@@ -16,7 +16,10 @@ faq_system.claude_api_key = os.getenv('CLAUDE_API_KEY')
 generation_progress = {
     'current': 0,
     'total': 0,
-    'status': 'idle'  # idle, generating, completed, error
+    'status': 'idle',  # idle, generating, completed, error
+    'retry_count': 0,  # 現在のリトライ回数
+    'max_retries': 0,  # 最大リトライ回数
+    'consecutive_failures': 0  # 連続失敗回数
 }
 
 @app.route('/')
@@ -464,16 +467,21 @@ def auto_generate_faqs():
             generation_progress['current'] = 0
             generation_progress['total'] = num_questions
             generation_progress['status'] = 'generating'
+            generation_progress['retry_count'] = 0
+            generation_progress['max_retries'] = 20  # faq_system.pyのmax_retry_attemptsと同じ
+            generation_progress['consecutive_failures'] = 0
 
             # 中断フラグをリセット
             faq_system.generation_interrupted = False
 
             # 進捗更新用コールバックを設定
-            def update_progress(current, total):
+            def update_progress(current, total, retry_count=0, consecutive_failures=0):
                 generation_progress['current'] = current
                 generation_progress['total'] = total
                 generation_progress['status'] = 'generating'
-                print(f"[DEBUG] 進捗更新: {current}/{total}")
+                generation_progress['retry_count'] = retry_count
+                generation_progress['consecutive_failures'] = consecutive_failures
+                print(f"[DEBUG] 進捗更新: {current}/{total}, リトライ: {retry_count}, 連続失敗: {consecutive_failures}")
 
             faq_system.progress_callback = update_progress
 

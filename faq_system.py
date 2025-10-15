@@ -1082,7 +1082,7 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
 
                 # リトライ開始を通知（UIが止まって見えないようにする）
                 if self.progress_callback:
-                    self.progress_callback(len(all_faqs), num_questions)
+                    self.progress_callback(len(all_faqs), num_questions, retry_count, consecutive_failures)
 
                 # 新しいランダムウィンドウを生成
                 if possible_positions:
