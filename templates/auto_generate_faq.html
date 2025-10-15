@@ -395,6 +395,16 @@
                                 // リトライ中や初期状態でも進捗を表示
                                 statusDiv.textContent = `FAQ生成中... 現在${progress.current}/${progress.total}件生成中`;
                             }
+                        } else if (progress.status === 'completed') {
+                            clearInterval(pollingInterval);
+                            clearInterval(timerInterval);
+                            const finalTime = elapsedTimeSpan.textContent;
+                            const finalSpeed = generationSpeedSpan.textContent;
+                            statusDiv.className = 'generate-status success';
+                            statusDiv.innerHTML = `<strong>✓ 生成完了！</strong>（所要時間: ${finalTime}、平均速度: ${finalSpeed}秒/件）<br>${progress.current}件のFAQを生成しました。<br><a href="/admin/review" style="color: #007c39; text-decoration: underline; font-weight: bold;">📋 承認待ちFAQを確認する</a>`;
+                            generateBtn.disabled = false;
+                            generateBtn.textContent = 'FAQ自動生成を実行';
+                            interruptBtn.style.display = 'none';
                         } else if (progress.status === 'interrupted') {
                             clearInterval(pollingInterval);
                             clearInterval(timerInterval);
@@ -402,6 +412,18 @@
                             const finalSpeed = generationSpeedSpan.textContent;
                             statusDiv.className = 'generate-status error';
                             statusDiv.innerHTML = `<strong>⚠ 生成が中断されました</strong>（所要時間: ${finalTime}、平均速度: ${finalSpeed}秒/件）<br>${progress.current}件のFAQが生成されました。<br><a href="/admin/review" style="color: #007c39; text-decoration: underline; font-weight: bold;">📋 承認待ちFAQを確認する</a>`;
+                            generateBtn.disabled = false;
+                            generateBtn.textContent = 'FAQ自動生成を実行';
+                            interruptBtn.style.display = 'none';
+                        } else if (progress.status === 'error') {
+                            clearInterval(pollingInterval);
+                            clearInterval(timerInterval);
+                            const finalTime = elapsedTimeSpan.textContent;
+                            statusDiv.className = 'generate-status error';
+                            statusDiv.textContent = `エラー: FAQ生成中にエラーが発生しました（所要時間: ${finalTime}）`;
+                            generateBtn.disabled = false;
+                            generateBtn.textContent = 'FAQ自動生成を実行';
+                            interruptBtn.style.display = 'none';
                         }
                     })
                     .catch(error => {
@@ -421,19 +443,21 @@
             })
             .then(response => {
                 clearTimeout(timeoutId);
-                clearInterval(pollingInterval); // ポーリング停止
-                clearInterval(timerInterval); // タイマー停止
                 return response.json();
             })
             .then(data => {
                 if (data.success) {
-                    statusDiv.className = 'generate-status success';
-                    const finalTime = elapsedTimeSpan.textContent;
-                    const finalSpeed = generationSpeedSpan.textContent;
-                    statusDiv.innerHTML = `<strong>✓ 生成完了！</strong>（所要時間: ${finalTime}、平均速度: ${finalSpeed}秒/件）<br><a href="/admin/review" style="color: #007c39; text-decoration: underline; font-weight: bold;">📋 承認待ちFAQを確認する</a>`;
+                    // バックグラウンド処理開始 - ポーリングは継続する
+                    console.log('FAQ生成開始:', data.message);
                 } else {
+                    // エラー時のみポーリング停止
+                    clearInterval(pollingInterval);
+                    clearInterval(timerInterval);
                     statusDiv.className = 'generate-status error';
                     statusDiv.textContent = `エラー: ${data.message}`;
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = 'FAQ自動生成を実行';
+                    interruptBtn.style.display = 'none';
                 }
             })
             .catch(error => {
@@ -446,12 +470,9 @@
                 } else {
                     statusDiv.textContent = `エラー: FAQの生成に失敗しました（${error.message}）`;
                 }
-            })
-            .finally(() => {
-                // ボタンを再有効化
                 generateBtn.disabled = false;
                 generateBtn.textContent = 'FAQ自動生成を実行';
-                interruptBtn.style.display = 'none'; // 中断ボタンを非表示
+                interruptBtn.style.display = 'none';
             });
         });
 
