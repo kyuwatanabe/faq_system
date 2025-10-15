@@ -23,7 +23,8 @@ generation_progress = {
     'excluded_windows': 0,  # 除外されたウィンドウ数
     'total_windows': 0,  # 総ウィンドウ数
     'question_range': '',  # 質問ウィンドウ範囲
-    'answer_range': ''  # 回答ウィンドウ範囲
+    'answer_range': '',  # 回答ウィンドウ範囲
+    'logs': []  # 最新10件のログメッセージ
 }
 
 @app.route('/')
@@ -501,20 +502,19 @@ def auto_generate_faqs():
                     print("[DEBUG] バックグラウンドスレッドでFAQ生成開始")
                     generated_faqs = faq_system.generate_faqs_from_document(pdf_path, num_questions, category)
 
-                    # 生成完了（中断されていない場合のみ）
-                    if not faq_system.generation_interrupted:
-                        generation_progress['status'] = 'completed'
-                    else:
+                    # 生成完了（中断された場合もFAQがあれば保存）
+                    if faq_system.generation_interrupted:
                         generation_progress['status'] = 'interrupted'
-                        print("[DEBUG] FAQ生成が中断されました")
-                        return
+                        print(f"[DEBUG] FAQ生成が中断されました（生成済み: {len(generated_faqs)}件）")
+                    else:
+                        generation_progress['status'] = 'completed'
 
                     if not generated_faqs:
-                        generation_progress['status'] = 'error'
+                        generation_progress['status'] = 'error' if not faq_system.generation_interrupted else 'interrupted'
                         print("[DEBUG] FAQ生成失敗: 生成されたFAQがありません")
                         return
 
-                    # 生成されたFAQを承認待ちキューに追加
+                    # 生成されたFAQを承認待ちキューに追加（中断されても実行）
                     added_count = 0
                     total_generated = len(generated_faqs)
                     for faq in generated_faqs:
@@ -626,20 +626,19 @@ def auto_generate_faqs():
                     except Exception as cleanup_error:
                         print(f"[DEBUG] 一時ファイル削除エラー: {cleanup_error}")
 
-                    # 生成完了（中断されていない場合のみ）
-                    if not faq_system.generation_interrupted:
-                        generation_progress['status'] = 'completed'
-                    else:
+                    # 生成完了（中断された場合もFAQがあれば保存）
+                    if faq_system.generation_interrupted:
                         generation_progress['status'] = 'interrupted'
-                        print("[DEBUG] FAQ生成が中断されました")
-                        return
+                        print(f"[DEBUG] FAQ生成が中断されました（生成済み: {len(generated_faqs)}件）")
+                    else:
+                        generation_progress['status'] = 'completed'
 
                     if not generated_faqs:
-                        generation_progress['status'] = 'error'
+                        generation_progress['status'] = 'error' if not faq_system.generation_interrupted else 'interrupted'
                         print("[DEBUG] FAQ生成失敗: 生成されたFAQがありません")
                         return
 
-                    # 生成されたFAQを承認待ちキューに追加
+                    # 生成されたFAQを承認待ちキューに追加（中断されても実行）
                     added_count = 0
                     total_generated = len(generated_faqs)
                     for faq in generated_faqs:

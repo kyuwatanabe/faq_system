@@ -806,6 +806,7 @@ class FAQSystem:
             # ランダムウィンドウ選択方式でFAQを生成
             generation_attempt = 0
             max_total_attempts = num_questions * 50  # 最大試行回数（無限ループ防止）
+            selected_position = None  # 現在選択中のウィンドウ位置（None = 新規選択が必要）
 
             while len(all_faqs) < num_questions and generation_attempt < max_total_attempts:
                 # 中断チェック
@@ -822,8 +823,11 @@ class FAQSystem:
                     print(f"[WARNING] 利用可能なウィンドウがなくなりました（{len(all_faqs)}件生成済み）")
                     break
 
-                # ランダムにウィンドウを選択（復元抽出）
-                selected_position = random.choice(available_windows)
+                # 新しいウィンドウを選択（selected_position が None の場合のみ）
+                if selected_position is None or selected_position in excluded_windows:
+                    selected_position = random.choice(available_windows)
+                    print(f"[DEBUG] 新しいウィンドウを選択: 位置 {selected_position}")
+
                 window_pair = create_window_pair(selected_position)
 
                 print(f"\n[DEBUG] 生成試行 {generation_attempt} (位置: {selected_position}, 質問範囲: {window_pair['q_range']}, 進捗: {len(all_faqs)}/{num_questions})...")
@@ -1013,14 +1017,18 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
                                         window_duplicate_count[selected_position] = 0
                                     window_duplicate_count[selected_position] += 1
 
+                                    # 進捗を更新用に現在のリトライカウントを保存
+                                    current_window_retry = window_duplicate_count[selected_position]
+
                                     # 10回連続で重複したらウィンドウを除外
                                     if window_duplicate_count[selected_position] >= 10:
                                         excluded_windows.add(selected_position)
                                         print(f"[DEBUG] ウィンドウ位置 {selected_position} を除外（連続10回重複）")
+                                        # ウィンドウ除外 → 次のループで新しいウィンドウを選択
+                                        selected_position = None
 
                                     # 進捗を更新（リトライ情報を表示）
                                     if self.progress_callback:
-                                        current_window_retry = window_duplicate_count.get(selected_position, 0)
                                         self.progress_callback(
                                             len(all_faqs),
                                             num_questions,
@@ -1095,14 +1103,18 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
                                         window_duplicate_count[selected_position] = 0
                                     window_duplicate_count[selected_position] += 1
 
+                                    # 進捗を更新用に現在のリトライカウントを保存
+                                    current_window_retry = window_duplicate_count[selected_position]
+
                                     # 10回連続で重複したらウィンドウを除外
                                     if window_duplicate_count[selected_position] >= 10:
                                         excluded_windows.add(selected_position)
                                         print(f"[DEBUG] ウィンドウ位置 {selected_position} を除外（連続10回重複）")
+                                        # ウィンドウ除外 → 次のループで新しいウィンドウを選択
+                                        selected_position = None
 
                                     # 進捗を更新（リトライ情報を表示）
                                     if self.progress_callback:
-                                        current_window_retry = window_duplicate_count.get(selected_position, 0)
                                         self.progress_callback(
                                             len(all_faqs),
                                             num_questions,
@@ -1120,9 +1132,12 @@ JSON形式のみを出力し、説明文は不要です。必ず1個だけ生成
                                     print(f"[DEBUG] 生成試行 {generation_attempt} FAQを追加: {current_question[:50]}...")
                                     print(f"[DEBUG] 現在のFAQ総数: {len(all_faqs)}/{num_questions}")
 
+                                    # FAQ生成成功 → 次のループで新しいウィンドウを選択
+                                    selected_position = None
+
                                     # 進捗を更新（progress_callbackが設定されている場合）
                                     if self.progress_callback:
-                                        current_window_retry = window_duplicate_count.get(selected_position, 0)
+                                        current_window_retry = 0  # 成功したのでリトライカウントは0
                                         self.progress_callback(
                                             len(all_faqs),
                                             num_questions,
