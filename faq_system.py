@@ -19,6 +19,18 @@ class FAQSystem:
         self.progress_callback = None  # 進捗報告用コールバック
         self.duplicate_faqs = []  # 重複判定されたFAQのリスト（デバッグ用）
         self.last_error_message = None  # 最後のエラーメッセージ（タイムアウト用）
+
+        # セマンティック類似度計算用のSentenceTransformerモデル
+        try:
+            from sentence_transformers import SentenceTransformer
+            print("[INFO] セマンティック重複除去モデルをロード中...")
+            self.semantic_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+            print("[INFO] セマンティックモデルのロード完了")
+        except Exception as e:
+            print(f"[WARNING] セマンティックモデルのロード失敗: {e}")
+            print("[WARNING] 文字列ベースの重複判定にフォールバックします")
+            self.semantic_model = None
+
         self.load_faq_data(csv_file)
         self.load_pending_qa()
 
@@ -234,6 +246,37 @@ class FAQSystem:
             question1.lower(),
             question2.lower()
         ).ratio()
+
+    def calculate_semantic_similarity(self, question1: str, question2: str) -> float:
+        """セマンティック類似度を計算（0.0〜1.0）
+
+        埋め込みベクトル（embeddings）を使用して意味的な類似度を計算します。
+        文字列が異なっていても、意味が同じであれば高い類似度を返します。
+
+        例：
+        - "ビザの有効期限と滞在期限の違いは何ですか？" vs "ビザの有効期限と滞在期限の違いは何？"
+          → 0.98 (ほぼ同じ意味)
+        """
+        if self.semantic_model is None:
+            # セマンティックモデルが使用できない場合は文字列ベースにフォールバック
+            print("[DEBUG] セマンティックモデル未使用、文字列ベース類似度で計算")
+            return self.calculate_similarity(question1, question2)
+
+        try:
+            # 埋め込みベクトルを計算
+            embeddings = self.semantic_model.encode([question1, question2])
+
+            # コサイン類似度を計算
+            from sklearn.metrics.pairwise import cosine_similarity
+            import numpy as np
+
+            similarity = cosine_similarity([embeddings[0]], [embeddings[1]])[0][0]
+
+            return float(similarity)
+        except Exception as e:
+            print(f"[WARNING] セマンティック類似度計算エラー: {e}")
+            print("[WARNING] 文字列ベース類似度にフォールバック")
+            return self.calculate_similarity(question1, question2)
 
     def _extract_important_keywords(self, question: str) -> set:
         """質問から重要なキーワードを抽出"""
@@ -714,7 +757,7 @@ class FAQSystem:
                 'category': "その他"
             }
 
-    def _generate_qa_from_window(self, window_text: str, category: str, used_questions: list = None) -> dict:
+    def _generate_qa_from_window(self, window_text: str, category: str, used_questions: list = None, window_rejected_questions: list = None) -> dict:
         """1段階生成: ウィンドウテキストから直接Q&Aを1つ生成"""
         import requests
         import json
@@ -722,59 +765,92 @@ class FAQSystem:
 
         if used_questions is None:
             used_questions = []
+        if window_rejected_questions is None:
+            window_rejected_questions = []
+
+        # ウィンドウ固有の却下質問を最優先で表示
+        window_rejected_text = ""
+        if window_rejected_questions:
+            window_rejected_text = f"""
+
+【⚠️ この文章からは既に以下の質問が却下されています ⚠️】
+**このウィンドウ（1500文字）から以下の質問は既に生成を試みましたが重複として却下されました。絶対に同じトピックの質問を作らないでください**：
+
+{chr(10).join([f'❌ {i+1}. {q}' for i, q in enumerate(window_rejected_questions)])}
+
+**重要**：上記のトピックとは**完全に異なる別のトピック**から質問を作成してください。
+例：上記が「I-94」「出国記録」なら、「ビザ有効期限」「ESTA申請」など全く別の話題を選ぶこと。
+"""
 
         used_questions_text = ""
         if used_questions:
+            # 最新20個のみ表示（ウィンドウ固有の情報を優先するため減らす）
+            recent_questions = used_questions[-20:] if len(used_questions) > 20 else used_questions
             used_questions_text = f"""
 
-【🚫 既に生成済みの質問 🚫】
-以下の質問は既に生成されています。**これらと類似する質問は絶対に生成しないでください**：
+【全体の既存質問】
+以下の質問も既に存在します：
 
-{chr(10).join([f'{i+1}. {q}' for i, q in enumerate(used_questions[:30])])}
-
-**必須**: 上記の質問と完全に異なる質問を作成すること
+{chr(10).join([f'{i+1}. {q}' for i, q in enumerate(recent_questions)])}
 """
 
         prompt = f"""
-以下の文章を読んで、この文章に明確に書かれている「事実」を1つ選び、
-その事実について質問と回答のペアを1つ作成してください。
+あなたは米国ビザFAQ作成の専門家です。以下の1500文字の文章から、**完全に異なる5つの質問**を作成してください。
 
-【文章】
+【文章（1500文字）】
 {window_text}
+
+{window_rejected_text}
 
 {used_questions_text}
 
-【ルール】
-1. 文章に明確に書かれている「事実」を1つ選ぶ
-   例：「オーバーステイが180日を超えると3年間入国禁止」
+【重要タスク】
+1. この1500文字の文章には複数の異なるトピックが含まれています
+2. **5つの質問は、それぞれ完全に異なるトピック**から選んでください
+3. **却下された質問のトピックは絶対に避けてください**
+4. 各トピックについて、実用的な質問と回答を作成してください
 
-2. その事実について、ビザ申請者が実際に聞きそうな質問を作る
-   - 35文字以内のシンプルな質問
-   - 「どのように」「どう」など回答が複雑になる質問は避ける
-   - 「はい/いいえ」「何」「いつ」「どこ」で答えられる質問
+**多様性の確保が最優先です**：
+- 5つの質問は互いに全く異なるトピックであること
+- 例：「ビザ有効期限」「ESTA申請」「入国審査」「家族同伴」「職業制限」のように、完全に別の話題
 
-3. 文章の内容をそのまま使って回答を作る
-   - 120文字以内で簡潔に
-   - 最も重要な情報1-2点のみ
-   - 「ただし」「なお」などの補足は最小限
+【質問作成のルール】
+- 35文字以内のシンプルな質問
+- 「はい/いいえ」「何」「いつ」「どこ」「誰」で答えられる質問
+- ビザ申請者が実際に聞きそうな実用的な質問
+
+【回答作成のルール】
+- 120文字以内で簡潔に
+- 文章に書かれている事実のみを使用
+- 推測や補足は含めない
 
 【絶対禁止】
-❌ 文章にない情報を推測しない
-❌ 複数の条件を1つの質問に入れない
-❌ マニアックすぎる・特殊すぎる質問（例：特定の職業、特定の国の開始時期）
-❌ ナンセンスな質問（例：「適切なビザで合法的に滞在できるか」など当たり前のこと）
-❌ マニュアルにない言葉を使う
+❌ 却下された質問と同じトピックの質問
+❌ 既存質問リストにある質問と似た質問
+❌ 5つの質問の中で似たトピックを選ぶ
+❌ 文章にない情報を推測する
+❌ マニアックすぎる・特殊すぎる質問
+❌ ナンセンスな質問（当たり前のことを聞く）
 
-【出力】
-JSON形式で1つだけ：
-{{
-  "question": "質問（35文字以内）",
-  "answer": "回答（120文字以内）",
-  "keywords": "キーワード1;キーワード2;キーワード3",
-  "category": "{category}"
-}}
+【出力形式】
+JSON配列で5つ：
+[
+  {{
+    "question": "質問1（35文字以内）",
+    "answer": "回答1（120文字以内）",
+    "keywords": "キーワード1;キーワード2;キーワード3",
+    "category": "{category}"
+  }},
+  {{
+    "question": "質問2（35文字以内）",
+    "answer": "回答2（120文字以内）",
+    "keywords": "キーワード1;キーワード2;キーワード3",
+    "category": "{category}"
+  }},
+  ... （5つ）
+]
 
-**文章に適切な事実がない場合は、空のオブジェクト {{}} を返してください。**
+適切な質問が5つ作れない場合は、作れる数だけ返してください（最低1つ）。
 """
 
         try:
@@ -791,8 +867,8 @@ JSON形式で1つだけ：
 
             data = {
                 'model': 'claude-3-haiku-20240307',
-                'max_tokens': 1024,
-                'temperature': 0.7,
+                'max_tokens': 3072,  # 5つの質問を生成するため増やす
+                'temperature': 1.0,  # 多様性を確保するため最大値に設定
                 'messages': [
                     {
                         'role': 'user',
@@ -819,22 +895,31 @@ JSON形式で1つだけ：
                     content = content.replace("```json", "").replace("```", "").strip()
 
                 import re
+                # 配列を探す（[...] 形式）
+                json_match = re.search(r'\[.*\]', content, re.DOTALL)
+                if json_match:
+                    faq_list = json.loads(json_match.group())
+                    if faq_list and isinstance(faq_list, list) and len(faq_list) > 0:
+                        print(f"[DEBUG] Q&A生成成功: {len(faq_list)}個の質問候補を生成")
+                        return faq_list  # リストを返す
+
+                # 配列が見つからない場合、単一オブジェクトとしてパースを試みる（後方互換性）
                 json_match = re.search(r'\{.*\}', content, re.DOTALL)
                 if json_match:
                     faq_data = json.loads(json_match.group())
                     if faq_data and 'question' in faq_data and faq_data['question']:
-                        print(f"[DEBUG] Q&A生成成功: {faq_data['question'][:50]}...")
-                        return faq_data
+                        print(f"[DEBUG] Q&A生成成功（単一）: {faq_data['question'][:50]}...")
+                        return [faq_data]  # リストに変換して返す
 
                 print("[DEBUG] JSON形式が不正または空")
-                return None
+                return []  # 空リストを返す
             else:
                 print(f"[ERROR] Q&A生成API失敗 - ステータス: {response.status_code}")
-                return None
+                return []  # 空リストを返す
 
         except Exception as e:
             print(f"[ERROR] Q&A生成エラー: {e}")
-            return None
+            return []  # エラー時は空リストを返す
 
     def _extract_scenarios(self, window_text: str, used_scenarios: list = None) -> list:
         """ステップ1: ウィンドウテキストからシナリオ（実際の悩み・疑問）を抽出"""
@@ -1218,23 +1303,25 @@ JSON配列のみを出力してください：
                 import time
                 api_start_time = time.time()
                 print(f"[DEBUG] Q&A生成開始...")
+                if window_used_scenarios:
+                    print(f"[DEBUG] このウィンドウで既に却下された質問: {len(window_used_scenarios)}個")
 
-                faq = self._generate_qa_from_window(
+                faq_candidates = self._generate_qa_from_window(
                     window_text=window_pair['answer_text'],  # より広い範囲を使用
                     category=category,
-                    used_questions=unique_questions
+                    used_questions=unique_questions,
+                    window_rejected_questions=window_used_scenarios  # ウィンドウ固有の却下質問を渡す
                 )
 
                 api_time = time.time() - api_start_time
                 print(f"[TIME] Q&A生成時間: {api_time:.1f}秒")
 
-                if faq:
-                    # FAQが生成された場合、JSON配列形式に変換（既存コードとの互換性のため）
-                    section_faqs = [faq]
-                    print(f"[DEBUG] 生成試行 {generation_attempt} FAQ生成成功")
+                if faq_candidates and len(faq_candidates) > 0:
+                    # 複数の質問候補が生成された
+                    print(f"[DEBUG] 生成試行 {generation_attempt} {len(faq_candidates)}個の質問候補を取得")
 
-                    # セクションから生成されたFAQを処理（通常は1個）
-                    for faq in section_faqs:
+                    # 候補から重複していないものを処理
+                    for faq in faq_candidates:
                         current_question = faq.get('question', '')
                         current_answer = faq.get('answer', '')
 
@@ -1288,7 +1375,8 @@ JSON配列のみを出力してください：
                             if checked_count % 100 == 0:
                                 print(f"[TIME] 重複チェック進捗: {checked_count}/{len(unique_questions)}件チェック済み")
 
-                            similarity = self.calculate_similarity(current_question, existing_q)
+                            # セマンティック類似度で重複判定
+                            similarity = self.calculate_semantic_similarity(current_question, existing_q)
 
                             # キーワードベースの判定
                             if similarity >= 0.85:
@@ -1339,7 +1427,8 @@ JSON配列のみを出力してください：
                         # これまでに生成したFAQとの重複チェック
                         if not is_duplicate:
                             for already_added in all_faqs:
-                                similarity = self.calculate_similarity(current_question, already_added.get('question', ''))
+                                # セマンティック類似度で重複判定
+                                similarity = self.calculate_semantic_similarity(current_question, already_added.get('question', ''))
 
                                 if similarity >= 0.85:
                                     print(f"[DEBUG] 生成試行 {generation_attempt} FAQをスキップ（生成済みと完全重複 {similarity:.2f}）: {current_question[:40]}...")
@@ -1387,7 +1476,10 @@ JSON配列のみを出力してください：
                         print(f"[TIME] 重複チェック完了: {dup_check_time:.1f}秒, 重複判定: {is_duplicate}")
 
                         if is_duplicate:
-                            # 重複の場合、ウィンドウ重複カウントを増やす
+                            # 重複の場合でも、次回の生成で同じ質問を避けるためにunique_questionsに追加
+                            unique_questions.append(current_question)
+
+                            # ウィンドウ重複カウントを増やす
                             if selected_position not in window_duplicate_count:
                                 window_duplicate_count[selected_position] = 0
                             window_duplicate_count[selected_position] += 1
