@@ -815,11 +815,13 @@ class FAQSystem:
 - 例：「ビザ有効期限」「ESTA申請」「入国審査」「家族同伴」「職業制限」のように、完全に別の話題
 
 【質問作成のルール】
+- **必ず日本語で作成すること**（英語は禁止）
 - 35文字以内のシンプルな質問
 - 「はい/いいえ」「何」「いつ」「どこ」「誰」で答えられる質問
 - ビザ申請者が実際に聞きそうな実用的な質問
 
 【回答作成のルール】
+- **必ず日本語で作成すること**（英語は禁止）
 - 120文字以内で簡潔に
 - 文章に書かれている事実のみを使用
 - 推測や補足は含めない
@@ -1378,8 +1380,8 @@ JSON配列のみを出力してください：
                             # セマンティック類似度で重複判定
                             similarity = self.calculate_semantic_similarity(current_question, existing_q)
 
-                            # キーワードベースの判定
-                            if similarity >= 0.85:
+                            # キーワードベースの判定（閾値を緩和して多様性を確保）
+                            if similarity >= 0.95:
                                 # 文字列がほぼ同一 → 重複
                                 print(f"[DEBUG] 生成試行 {generation_attempt} FAQをスキップ（既存と完全重複 {similarity:.2f}）: {current_question[:40]}...")
                                 # 重複FAQを記録（デバッグ用）
@@ -1390,7 +1392,7 @@ JSON配列のみを出力してください：
                                     'matched_with': existing_q,
                                     'window_position': selected_position,
                                     'window_retry_count': window_duplicate_count.get(selected_position, 0) + 1,
-                                    'reason': '既存と完全重複（類似度 >= 0.85）'
+                                    'reason': '既存と完全重複（類似度 >= 0.95）'
                                 })
                                 # このウィンドウの重複質問リストに追加
                                 if selected_position not in window_rejected_questions:
@@ -1398,7 +1400,7 @@ JSON配列のみを出力してください：
                                 window_rejected_questions[selected_position].append(current_question)
                                 is_duplicate = True
                                 break
-                            elif similarity >= 0.60:
+                            elif similarity >= 0.80:
                                 # 文字列は似ているが、重要キーワードをチェック
                                 keywords_new = self._extract_important_keywords(current_question)
                                 keywords_existing = self._extract_important_keywords(existing_q)
@@ -1430,7 +1432,7 @@ JSON配列のみを出力してください：
                                 # セマンティック類似度で重複判定
                                 similarity = self.calculate_semantic_similarity(current_question, already_added.get('question', ''))
 
-                                if similarity >= 0.85:
+                                if similarity >= 0.95:
                                     print(f"[DEBUG] 生成試行 {generation_attempt} FAQをスキップ（生成済みと完全重複 {similarity:.2f}）: {current_question[:40]}...")
                                     # 重複FAQを記録（デバッグ用）
                                     self.duplicate_faqs.append({
@@ -1440,7 +1442,7 @@ JSON配列のみを出力してください：
                                         'matched_with': already_added.get('question', ''),
                                         'window_position': selected_position,
                                         'window_retry_count': window_duplicate_count.get(selected_position, 0) + 1,
-                                        'reason': '生成済みと完全重複（類似度 >= 0.85）'
+                                        'reason': '生成済みと完全重複（類似度 >= 0.95）'
                                     })
                                     # このウィンドウの重複質問リストに追加
                                     if selected_position not in window_rejected_questions:
@@ -1448,7 +1450,7 @@ JSON配列のみを出力してください：
                                     window_rejected_questions[selected_position].append(current_question)
                                     is_duplicate = True
                                     break
-                                elif similarity >= 0.60:
+                                elif similarity >= 0.80:
                                     keywords_new = self._extract_important_keywords(current_question)
                                     keywords_added = self._extract_important_keywords(already_added.get('question', ''))
 
